@@ -4,9 +4,9 @@
   "private": true,
   "description": "EduVault E-Learning & Subscription Platform with Google Sheet Database Backend",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint"
   },
   "engines": {
