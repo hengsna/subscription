@@ -78,7 +78,21 @@ The Google Sheet is organized into **5 relational tables**:
 - Node.js `v18.0.0` or higher
 - npm `v9.0.0` or higher
 
-### Installation & Local Run
+### ⚡ 1-Click Automated Local Run (Windows)
+
+Simply double-click:
+```powershell
+start-local.bat
+```
+*(Or in PowerShell run `./start-local.ps1`)*
+
+This script automatically:
+1. Verifies Node.js & npm.
+2. Installs dependencies if missing.
+3. Launches the Next.js development server.
+4. **Automatically opens `http://localhost:3000` in your default browser.**
+
+### Manual Installation & Local Run
 
 ```bash
 # 1. Clone repository
@@ -94,12 +108,25 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Production Build
+### Production Build & Run
 
 ```bash
 npm run build
 npm start
 ```
+
+---
+
+## ☁️ Deploying to Vercel
+
+The repository includes a ready-to-use [`vercel.json`](./vercel.json) configuration.
+
+When importing the repository on **[Vercel](https://vercel.com/)**:
+1. Select the **`subscription`** repository.
+2. Under **Project Settings**:
+   - **Framework Preset:** `Next.js`
+   - **Root Directory:** Leave **EMPTY** (or `./`). *Do not enter a subfolder name, as `package.json` sits at the repository root.*
+3. Click **Deploy**. Vercel will build and deploy automatically!
 
 ---
 
