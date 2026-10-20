@@ -22,5 +22,4 @@ if not defined CHROME_BIN (
 
 echo [INFO] Launching Google Chrome on http://localhost:3000 ...
 start "" "!CHROME_BIN!" "http://localhost:3000"
-start "" "!CHROME_BIN!" "%~dp0eduvault_e_learning_platform.html"
 exit /b 0
