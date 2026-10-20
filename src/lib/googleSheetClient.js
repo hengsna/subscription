@@ -3,6 +3,18 @@ import { INITIAL_DATABASE } from './initialData';
 const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/18KbYjseMn8_qXwkh8Fe417DbHLq5V3CZFVCzs4UQQOw/edit?usp=sharing';
 
 /**
+ * Sanitizes input string to prevent CSV / Google Sheet formula injection
+ * (e.g. '=cmd|...', '+...', '-...', '@...', '|...')
+ */
+export function sanitizeSpreadsheetString(val) {
+  if (typeof val !== 'string') return val;
+  if (/^[=+\-@|\t\r]/.test(val)) {
+    return `'${val}`;
+  }
+  return val;
+}
+
+/**
  * Client for communicating with Google Apps Script Web App API
  */
 export async function fetchGoogleSheetData(webAppUrl) {
@@ -59,11 +71,26 @@ export async function mutateGoogleSheet(webAppUrl, action, payload = {}) {
     return { status: 'mocked', message: `Simulated local action: ${action}` };
   }
 
+  // Sanitize all string fields in payload to prevent formula injection
+  const sanitizedPayload = {};
+  for (const [key, val] of Object.entries(payload)) {
+    if (typeof val === 'string') {
+      sanitizedPayload[key] = sanitizeSpreadsheetString(val);
+    } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+      sanitizedPayload[key] = {};
+      for (const [subKey, subVal] of Object.entries(val)) {
+        sanitizedPayload[key][subKey] = typeof subVal === 'string' ? sanitizeSpreadsheetString(subVal) : subVal;
+      }
+    } else {
+      sanitizedPayload[key] = val;
+    }
+  }
+
   try {
     const res = await fetch(webAppUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...payload })
+      body: JSON.stringify({ action, ...sanitizedPayload })
     });
 
     const json = await res.json();
@@ -87,20 +114,31 @@ function normalizeSheetData(raw) {
   };
 
   if (Array.isArray(raw.users)) {
-    norm.users = raw.users.map(u => ({
-      id: Number(u.ID || u.id),
-      name: u.Name || u.name || '',
-      email: u.Email || u.email || '',
-      role: (u.Role || u.role || 'normal').toLowerCase(),
-      plan: (u.Plan || u.plan || 'free').toLowerCase(),
-      emailVerified: Boolean(u.EmailVerified !== undefined ? u.EmailVerified : u.emailVerified),
-      quotaRemaining: Number(u.QuotaRemaining !== undefined ? u.QuotaRemaining : u.quotaRemaining),
-      quotaMax: Number(u.QuotaMax !== undefined ? u.QuotaMax : u.quotaMax),
-      renewalDate: u.RenewalDate || u.renewalDate || 'N/A',
-      singlePdfUnlockedIds: Array.isArray(u.SinglePdfUnlockedIds)
-        ? u.SinglePdfUnlockedIds
-        : (typeof u.SinglePdfUnlockedIds === 'string' ? JSON.parse(u.SinglePdfUnlockedIds || '[]') : [])
-    }));
+    norm.users = raw.users.map(u => {
+      let unlockedIds = [];
+      if (Array.isArray(u.SinglePdfUnlockedIds)) {
+        unlockedIds = u.SinglePdfUnlockedIds;
+      } else if (typeof u.SinglePdfUnlockedIds === 'string') {
+        try {
+          unlockedIds = JSON.parse(u.SinglePdfUnlockedIds || '[]');
+        } catch {
+          unlockedIds = [];
+        }
+      }
+
+      return {
+        id: Number(u.ID || u.id),
+        name: u.Name || u.name || '',
+        email: u.Email || u.email || '',
+        role: (u.Role || u.role || 'normal').toLowerCase(),
+        plan: (u.Plan || u.plan || 'free').toLowerCase(),
+        emailVerified: Boolean(u.EmailVerified !== undefined ? u.EmailVerified : u.emailVerified),
+        quotaRemaining: Number(u.QuotaRemaining !== undefined ? u.QuotaRemaining : u.quotaRemaining),
+        quotaMax: Number(u.QuotaMax !== undefined ? u.QuotaMax : u.quotaMax),
+        renewalDate: u.RenewalDate || u.renewalDate || 'N/A',
+        singlePdfUnlockedIds: Array.isArray(unlockedIds) ? unlockedIds : []
+      };
+    });
   }
 
   if (Array.isArray(raw.resources)) {

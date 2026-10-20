@@ -1,0 +1,62 @@
+name: Security Scan & Anti-Malware Analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  codeql-analysis:
+    name: CodeQL Static Application Security Testing (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL Security Scanner
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  security-audit:
+    name: Dependency Audit & Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check for Uncommitted Secrets
+        run: |
+          echo "Scanning for exposed private keys or tokens..."
+          if grep -rnE "AIza[0-9A-Za-z-_]{35}|ghp_[0-9a-zA-Z]{36}|vercel_[0-9a-zA-Z]{24}" . \
+            --exclude-dir={.git,node_modules,.next}; then
+            echo "::error::Potential hardcoded secret or API token detected in codebase!"
+            exit 1
+          else
+            echo "No hardcoded secrets found."
+          fi
+
+      - name: Verify Production Next.js Build
+        run: npm run build
