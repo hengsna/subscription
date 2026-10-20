@@ -1,0 +1,2676 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduVault — E-Learning & Resource Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #064e3b;
+        }
+        .glass-bar {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+        }
+        .flow-node {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .flow-node.active-node {
+            border-color: #059669;
+            background-color: #ecfdf5;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.22);
+            transform: translateY(-2px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a7f3d0;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-white text-slate-800">
+
+    <!-- SIMULATED EMAIL INBOX DRAWER / FLOATING BAR (For Double Opt-In & Password Reset) -->
+    <div id="simulated-inbox-banner" class="bg-emerald-900 text-white text-xs sm:text-sm py-2.5 px-4 border-b border-emerald-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+                <span class="flex h-2.5 w-2.5 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                </span>
+                <span class="font-semibold text-emerald-200"><i class="fa-solid fa-sliders mr-1.5"></i>Interactive Role & Sandbox Switcher:</span>
+                <span class="text-emerald-100/80 hidden md:inline">Instantly test access rules or inspect simulated emails</span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <label for="quick-role-select" class="text-emerald-100 font-medium">Test Persona:</label>
+                <select id="quick-role-select" onchange="switchQuickPersona(this.value)" class="bg-emerald-950 text-white border border-emerald-700 rounded-lg px-2.5 py-1 text-xs font-medium focus:outline-none focus:border-emerald-400">
+                    <option value="normal">Normal User (Free — View Only)</option>
+                    <option value="premium_monthly" selected>Premium Monthly (15 PDFs/mo)</option>
+                    <option value="premium_yearly">Premium Yearly (Unlimited PDFs)</option>
+                    <option value="single_buyer">Single PDF Buyer (1-Time Quota)</option>
+                    <option value="unverified">Unverified User (Double Opt-in Pending)</option>
+                    <option value="admin">Platform Admin (Full Control)</option>
+                </select>
+
+                <button onclick="switchTab('database')" title="Configure Google Sheets Database" class="bg-emerald-950 text-emerald-200 border border-emerald-700 hover:bg-emerald-900 px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-table-cells text-emerald-400"></i>
+                    <span id="top-sheet-badge">Google Sheet DB</span>
+                </button>
+
+                <button onclick="openEmailClientModal()" class="relative bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm border border-emerald-400/30">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                    <span>Simulated Inbox</span>
+                    <span id="inbox-badge" class="bg-white text-emerald-900 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">1</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN NAVIGATION HEADER -->
+    <header class="glass-bar sticky top-[41px] z-40 border-b border-emerald-100 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('library')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                    <i class="fa-solid fa-graduation-cap text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-xl tracking-tight text-slate-900">Edu<span class="text-emerald-600">Vault</span></span>
+                    <span class="hidden sm:inline-block ml-1.5 text-[10px] uppercase tracking-wider font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Pro E-Learning</span>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex items-center space-x-1">
+                <button onclick="switchTab('library')" id="nav-library" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 transition">
+                    <i class="fa-solid fa-book-open mr-1.5"></i>Resource Library
+                </button>
+                <button onclick="switchTab('pricing')" id="nav-pricing" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition">
+                    <i class="fa-solid fa-credit-card mr-1.5"></i>Subscriptions & Billing
+                </button>
+                <button onclick="switchTab('workflow')" id="nav-workflow" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition">
+                    <i class="fa-solid fa-diagram-project mr-1.5"></i>Workflow & Stack
+                </button>
+                <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition flex items-center">
+                    <i class="fa-solid fa-shield-halved mr-1.5 text-emerald-600"></i>Admin Dashboard
+                </button>
+                <button onclick="switchTab('database')" id="nav-database" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition flex items-center">
+                    <i class="fa-solid fa-table-cells mr-1.5 text-emerald-600"></i>Google Sheet DB
+                </button>
+                <button onclick="switchTab('auth')" id="nav-auth" class="nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition">
+                    <i class="fa-solid fa-user-lock mr-1.5"></i>Auth Portal
+                </button>
+            </nav>
+
+            <!-- User Status Pill & Quota Display -->
+            <div class="flex items-center space-x-3">
+                <div id="header-user-summary" class="hidden sm:flex items-center bg-white border border-emerald-200 rounded-xl px-3 py-1.5 space-x-3 shadow-sm">
+                    <div class="text-right">
+                        <div class="flex items-center justify-end space-x-1.5">
+                            <span id="header-user-name" class="text-xs font-bold text-slate-800">Alex Rivera</span>
+                            <span id="header-role-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">PREMIUM</span>
+                        </div>
+                        <div id="header-quota-text" class="text-[11px] text-emerald-700 font-medium">Quota: 12 / 15 Downloads left</div>
+                    </div>
+                    <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-emerald-700 transition p-1">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+
+                <button id="header-login-btn" onclick="switchTab('auth')" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition">
+                    Sign In / Join
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Sub-navigation -->
+        <div class="flex md:hidden overflow-x-auto border-t border-emerald-100 px-3 py-2 space-x-2 bg-white">
+            <button onclick="switchTab('library')" id="mnav-library" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Library</button>
+            <button onclick="switchTab('pricing')" id="mnav-pricing" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600">Plans & Pay</button>
+            <button onclick="switchTab('workflow')" id="mnav-workflow" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600">Workflow Diagram</button>
+            <button onclick="switchTab('admin')" id="mnav-admin" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600">Admin</button>
+            <button onclick="switchTab('database')" id="mnav-database" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600">Sheet DB</button>
+            <button onclick="switchTab('auth')" id="mnav-auth" class="mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600">Auth</button>
+        </div>
+    </header>
+
+    <!-- EMAIL VERIFICATION WARNING BANNER (Shown when logged-in user hasn't verified email) -->
+    <div id="unverified-warning" class="hidden bg-emerald-50 border-b border-emerald-200 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5 text-emerald-950 text-sm">
+                <i class="fa-solid fa-envelope-circle-check text-emerald-600 text-base"></i>
+                <span><strong>Email Verification Required (Double Opt-In):</strong> Your account is pending verification. PDF downloads and plan upgrades are restricted until verified.</span>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <button onclick="resendVerificationEmail()" class="text-xs font-semibold bg-white border border-emerald-300 text-emerald-800 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition">
+                    Resend Confirmation
+                </button>
+                <button onclick="verifyCurrentUserEmail()" class="text-xs font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition shadow-sm">
+                    <i class="fa-solid fa-check-double mr-1"></i>Simulate 1-Click Verify
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-white">
+
+        <!-- ==========================================
+             VIEW 1: E-LEARNING LIBRARY & ACCESS LOGIC
+             ========================================== -->
+        <section id="view-library" class="space-y-8">
+            <!-- Hero Status & Live Quota Card (White & 30% Green Balance) -->
+            <div class="bg-emerald-50/70 border-2 border-emerald-200 rounded-2xl p-6 sm:p-8 text-slate-900 shadow-sm relative overflow-hidden">
+                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-7 space-y-3">
+                        <div class="inline-flex items-center space-x-2 bg-white border border-emerald-300 rounded-full px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-sm">
+                            <i class="fa-solid fa-leaf text-emerald-600"></i>
+                            <span id="library-hero-tier-pill">Active Tier: Premium Monthly Subscription</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Curated Computer Science & Engineering PDF Library</h1>
+                        <p class="text-slate-600 text-sm sm:text-base max-w-2xl">
+                            Access peer-reviewed handbooks, architecture blueprints, and interactive workbooks. Access rights dynamically adapt to your role, verification status, and subscription plan.
+                        </p>
+                    </div>
+
+                    <!-- Live Access & Quota Telemetry Panel -->
+                    <div class="lg:col-span-5 bg-white border-2 border-emerald-500/30 rounded-2xl p-5 space-y-4 shadow-md">
+                        <div class="flex items-center justify-between border-b border-emerald-100 pb-3">
+                            <div>
+                                <p class="text-xs uppercase tracking-wider text-emerald-600 font-bold">Current Access Rule</p>
+                                <h3 id="quota-card-title" class="text-lg font-extrabold text-slate-900">Premium Monthly Plan</h3>
+                            </div>
+                            <span id="quota-status-icon" class="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                                <i class="fa-solid fa-unlock-keyhole text-lg"></i>
+                            </span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-600">Download Quota Remaining</span>
+                                <span id="quota-fraction-badge" class="font-bold text-emerald-700">12 / 15 PDFs</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-emerald-100 rounded-full overflow-hidden">
+                                <div id="quota-progress-bar" class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full rounded-full transition-all duration-500" style="width: 80%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-1 text-xs">
+                            <div class="bg-emerald-50/60 rounded-xl p-2.5 border border-emerald-100">
+                                <span class="text-slate-500 block">Renewal / Expiry</span>
+                                <span id="quota-renewal-date" class="font-bold text-slate-800">Nov 17, 2026</span>
+                            </div>
+                            <div class="bg-emerald-50/60 rounded-xl p-2.5 border border-emerald-100">
+                                <span class="text-slate-500 block">Email Opt-In</span>
+                                <span id="quota-email-verified" class="font-bold text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>Verified</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <button onclick="switchTab('pricing')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition shadow-sm">
+                                <i class="fa-solid fa-arrow-up-right-dots mr-1.5"></i>Change Plan or Buy Single PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search, Category Filter & Quick Subscription Selector -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-emerald-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                <!-- Search Input -->
+                <div class="relative flex-grow max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 text-sm"></i>
+                    <input type="text" id="resource-search" oninput="renderResources()" placeholder="Search PDF title, topic, or author..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-emerald-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                </div>
+
+                <!-- Category Pills -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0" id="category-filters">
+                    <button onclick="setCategoryFilter('All')" data-cat="All" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition">All Resources</button>
+                    <button onclick="setCategoryFilter('System Design')" data-cat="System Design" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition">System Design</button>
+                    <button onclick="setCategoryFilter('Full-Stack')" data-cat="Full-Stack" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition">Full-Stack</button>
+                    <button onclick="setCategoryFilter('AI & Data')" data-cat="AI & Data" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition">AI & Data</button>
+                    <button onclick="setCategoryFilter('Cloud & Security')" data-cat="Cloud & Security" class="cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition">Cloud & Security</button>
+                </div>
+            </div>
+
+            <!-- Resource Grid -->
+            <div id="resource-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 2: SUBSCRIPTION & PAYMENT FLOW
+             ========================================== -->
+        <section id="view-pricing" class="hidden space-y-8">
+            <div class="text-center max-w-3xl mx-auto space-y-3">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">Tiered Payment Logic</span>
+                <h2 class="text-3xl font-extrabold text-slate-900">Flexible E-Learning Subscriptions</h2>
+                <p class="text-slate-600 text-sm sm:text-base">
+                    Choose a plan from the dropdown or cards below, complete the simulated Stripe or PayPal checkout, and watch your download quota and access rights activate immediately.
+                </p>
+            </div>
+
+            <!-- Interactive Subscription Dropdown Bar (Explicit Requirement #2) -->
+            <div class="bg-emerald-50/50 rounded-2xl p-6 border-2 border-emerald-200 shadow-sm max-w-4xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div class="md:col-span-5">
+                        <label for="subscription-dropdown" class="block text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">
+                            1. Select Subscription Type (Dropdown)
+                        </label>
+                        <select id="subscription-dropdown" onchange="handleSubscriptionDropdownChange(this.value)" class="w-full bg-white border border-emerald-300 text-slate-900 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="free">• Normal (Free) — $0.00 (View Library Only)</option>
+                            <option value="monthly" selected>• Premium Monthly Payment — $19.00 / month (15 PDFs/mo)</option>
+                            <option value="yearly">• Premium Yearly Payment — $149.00 / year (Unlimited PDFs)</option>
+                            <option value="single">• Single PDF Purchase — $7.99 One-Time (1 Specific PDF)</option>
+                        </select>
+                    </div>
+
+                    <!-- Conditional PDF Selector when "Single PDF Purchase" is chosen -->
+                    <div id="single-pdf-selector-container" class="md:col-span-4 hidden">
+                        <label for="single-pdf-target" class="block text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">
+                            Select Target PDF Resource
+                        </label>
+                        <select id="single-pdf-target" class="w-full bg-white border border-emerald-300 text-slate-900 rounded-xl px-3.5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div id="dropdown-action-col" class="md:col-span-7 flex items-center justify-end gap-3">
+                        <button onclick="openCheckoutFromDropdown()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-lock"></i>
+                            <span id="dropdown-checkout-btn-label">Proceed to Checkout ($19.00/mo)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4-Column Pricing Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Normal (Free) -->
+                <div class="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Starter</span>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">View Only</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900">Normal (Free)</h3>
+                        <div class="flex items-baseline">
+                            <span class="text-3xl font-extrabold text-slate-900">$0</span>
+                            <span class="text-slate-500 text-xs ml-1">/ forever</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Browse catalog metadata and read interactive executive summaries.</p>
+                        <ul class="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-emerald-100">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>Full Library Search & Preview</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>Email Newsletter Opt-in</li>
+                            <li class="flex items-center text-slate-400"><i class="fa-solid fa-lock mr-2"></i>PDF Downloads Locked (0 Quota)</li>
+                        </ul>
+                    </div>
+                    <button onclick="selectPlanAndCheckout('free')" class="mt-6 w-full py-2.5 px-4 rounded-xl border border-emerald-300 text-emerald-800 font-semibold text-xs hover:bg-emerald-50 transition">
+                        Switch to Free Tier
+                    </button>
+                </div>
+
+                <!-- Single PDF Purchase -->
+                <div class="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Pay-Per-Resource</span>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">1 Download</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900">Single PDF</h3>
+                        <div class="flex items-baseline">
+                            <span class="text-3xl font-extrabold text-slate-900">$7.99</span>
+                            <span class="text-slate-500 text-xs ml-1">/ one-time</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Need just one handbook? Unlock a single 1-time download credit immediately.</p>
+                        <ul class="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-emerald-100">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>1-Time PDF Download Access</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>No Recurring Subscription</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>Instant Stripe / PayPal Receipt</li>
+                        </ul>
+                    </div>
+                    <button onclick="selectPlanAndCheckout('single')" class="mt-6 w-full py-2.5 px-4 rounded-xl bg-emerald-100 hover:bg-emerald-600 text-emerald-900 hover:text-white border border-emerald-300 font-bold text-xs transition shadow-sm">
+                        Buy Single PDF ($7.99)
+                    </button>
+                </div>
+
+                <!-- Premium Monthly -->
+                <div class="bg-white rounded-2xl p-6 border-2 border-emerald-600 shadow-lg relative flex flex-col justify-between">
+                    <span class="absolute -top-3 right-4 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full">Most Popular</span>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Pro Monthly</span>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">15 PDFs / mo</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900">Premium Monthly</h3>
+                        <div class="flex items-baseline">
+                            <span class="text-3xl font-extrabold text-slate-900">$19</span>
+                            <span class="text-slate-500 text-xs ml-1">/ month</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Ideal for active learners downloading multiple engineering guides monthly.</p>
+                        <ul class="space-y-2.5 text-xs text-slate-700 pt-2 border-t border-emerald-100">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>15 Full PDF Downloads / Month</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>Auto-renews every 30 days</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-600 mr-2"></i>Code samples & appendices</li>
+                        </ul>
+                    </div>
+                    <button onclick="selectPlanAndCheckout('monthly')" class="mt-6 w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-md">
+                        Subscribe Monthly ($19)
+                    </button>
+                </div>
+
+                <!-- Premium Yearly (30% Green Card Accent) -->
+                <div class="bg-emerald-700 text-white rounded-2xl p-6 border-2 border-emerald-800 shadow-lg flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Best Value</span>
+                            <span class="text-xs bg-white/20 text-white px-2.5 py-0.5 rounded-full font-semibold">Unlimited Quota</span>
+                        </div>
+                        <h3 class="text-xl font-bold">Premium Yearly</h3>
+                        <div class="flex items-baseline">
+                            <span class="text-3xl font-extrabold">$149</span>
+                            <span class="text-emerald-100 text-xs ml-1">/ year (Save 35%)</span>
+                        </div>
+                        <p class="text-xs text-emerald-100">Unrestricted downloads across the entire vault for 365 days.</p>
+                        <ul class="space-y-2.5 text-xs text-white pt-2 border-t border-emerald-600">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-200 mr-2"></i>Unlimited PDF Downloads (999/yr)</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-200 mr-2"></i>Priority New Release Emails</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-200 mr-2"></i>Verified Certificate of Completion</li>
+                        </ul>
+                    </div>
+                    <button onclick="selectPlanAndCheckout('yearly')" class="mt-6 w-full py-2.5 px-4 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs transition shadow-md">
+                        Subscribe Yearly ($149)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current User Payment & Subscription Ledger -->
+            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-emerald-100 bg-emerald-50/40 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Your Payment History & Subscription Ledger</h3>
+                        <p class="text-xs text-slate-500">Stored in database state and updated immediately upon gateway confirmation</p>
+                    </div>
+                    <span class="text-xs font-semibold text-emerald-700"><i class="fa-solid fa-shield-check text-emerald-600 mr-1"></i>256-Bit TLS Encrypted</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                                <th class="py-3 px-4">Transaction ID</th>
+                                <th class="py-3 px-4">Date</th>
+                                <th class="py-3 px-4">Plan / Item</th>
+                                <th class="py-3 px-4">Gateway</th>
+                                <th class="py-3 px-4">Amount</th>
+                                <th class="py-3 px-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-payments-tbody" class="divide-y divide-emerald-100 text-xs sm:text-sm bg-white">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 3: VISUAL WORKFLOW & TECH ARCHITECTURE
+             ========================================== -->
+        <section id="view-workflow" class="hidden space-y-8">
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border border-emerald-200 shadow-sm space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-emerald-100 pb-5">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Interactive System Blueprint</span>
+                        <h2 class="text-2xl font-extrabold text-slate-900 mt-1">End-to-End User & Admin Workflow Diagram</h2>
+                        <p class="text-sm text-slate-600">Click any workflow node below to inspect its validation rules, API endpoints, and live state.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold text-slate-500">Live Highlight:</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-600 mr-2 animate-pulse"></span>Synced with Active Persona
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 1. USER PIPELINE -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center">
+                        <i class="fa-solid fa-user-graduate text-emerald-600 mr-2"></i>1. Primary User Journey Pipeline
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-stretch">
+                        <!-- Step 1 -->
+                        <div onclick="inspectWorkflowNode('signup')" id="wf-node-signup" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 01</span>
+                                <i class="fa-solid fa-user-plus text-emerald-600 text-sm"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Signup / Login]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">JWT Auth + bcrypt password hashing</p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div onclick="inspectWorkflowNode('verify')" id="wf-node-verify" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 02</span>
+                                <i class="fa-solid fa-envelope-circle-check text-emerald-600 text-sm"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Email Verification]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">SendGrid Double Opt-In token link</p>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div onclick="inspectWorkflowNode('select_sub')" id="wf-node-select_sub" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 03</span>
+                                <i class="fa-solid fa-list-check text-emerald-600 text-sm"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Select Subscription]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Free, Monthly, Yearly, or Single PDF</p>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div onclick="inspectWorkflowNode('gateway')" id="wf-node-gateway" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 04</span>
+                                <i class="fa-brands fa-stripe text-emerald-600 text-lg"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Payment Gateway]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Stripe / PayPal webhook confirmation</p>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div onclick="inspectWorkflowNode('library')" id="wf-node-library" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 05</span>
+                                <i class="fa-solid fa-book-bookmark text-emerald-600 text-sm"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Access Library]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">RBAC middleware checks user tier</p>
+                        </div>
+
+                        <!-- Step 6 -->
+                        <div onclick="inspectWorkflowNode('download')" id="wf-node-download" class="flow-node cursor-pointer p-4 rounded-xl border-2 border-emerald-200 bg-white flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs font-bold text-emerald-600 mb-2">
+                                <span>STEP 06</span>
+                                <i class="fa-solid fa-file-arrow-down text-emerald-600 text-sm"></i>
+                            </div>
+                            <div class="font-bold text-sm text-slate-900">[Download PDFs]</div>
+                            <p class="text-[11px] text-slate-500 mt-1">Decrement quota & log audit event</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DECISION BRANCHES (Access Logic) -->
+                <div class="bg-emerald-50/60 rounded-2xl p-5 border border-emerald-200 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center">
+                            <i class="fa-solid fa-code-branch text-emerald-600 mr-2"></i>2. Conditional Decision Branches (Access Control Engine)
+                        </h3>
+                        <span class="text-xs text-emerald-700 font-semibold">Click any branch to test persona</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Branch A: Free -->
+                        <div id="branch-free" onclick="switchQuickPersona('normal')" class="flow-node cursor-pointer p-4 rounded-xl bg-white border-2 border-emerald-200 flex items-start space-x-3.5">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 font-bold text-sm">
+                                <i class="fa-solid fa-eye"></i>
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold uppercase text-emerald-600">Condition A</span>
+                                <h4 class="font-bold text-sm text-slate-900">If Free → View Only</h4>
+                                <p class="text-xs text-slate-600 mt-1">User can search catalog and open abstract previews. Download endpoint returns <code class="bg-emerald-50 text-emerald-800 px-1 rounded">403 Forbidden</code>.</p>
+                            </div>
+                        </div>
+
+                        <!-- Branch B: Premium -->
+                        <div id="branch-premium" onclick="switchQuickPersona('premium_monthly')" class="flow-node cursor-pointer p-4 rounded-xl bg-white border-2 border-emerald-200 flex items-start space-x-3.5">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold text-sm">
+                                <i class="fa-solid fa-cloud-arrow-down"></i>
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold uppercase text-emerald-600">Condition B</span>
+                                <h4 class="font-bold text-sm text-slate-900">If Premium → Download Access</h4>
+                                <p class="text-xs text-slate-600 mt-1">Monthly plan grants 15 downloads/cycle; Yearly grants unlimited access until renewal date.</p>
+                            </div>
+                        </div>
+
+                        <!-- Branch C: Single PDF -->
+                        <div id="branch-single" onclick="switchQuickPersona('single_buyer')" class="flow-node cursor-pointer p-4 rounded-xl bg-white border-2 border-emerald-200 flex items-start space-x-3.5">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold text-sm">
+                                <i class="fa-solid fa-file-shield"></i>
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold uppercase text-emerald-600">Condition C</span>
+                                <h4 class="font-bold text-sm text-slate-900">If Single PDF → One Download Only</h4>
+                                <p class="text-xs text-slate-600 mt-1">Unlocks a 1-time token for the purchased PDF ID. Token is consumed immediately after download.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ADMIN WORKFLOW -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center">
+                        <i class="fa-solid fa-user-shield text-emerald-600 mr-2"></i>3. Administrator Governance Flow
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div onclick="inspectWorkflowNode('admin_login')" class="flow-node cursor-pointer p-4 rounded-xl border border-emerald-600 bg-emerald-800 text-white">
+                            <div class="text-[10px] font-bold text-emerald-200 uppercase">Admin Step 1</div>
+                            <div class="font-bold text-sm mt-1">[Admin Login]</div>
+                            <p class="text-xs text-emerald-100 mt-1">Role verification (`role === 'admin'`), MFA enforcement</p>
+                        </div>
+                        <div onclick="inspectWorkflowNode('admin_users')" class="flow-node cursor-pointer p-4 rounded-xl border border-emerald-600 bg-emerald-800 text-white">
+                            <div class="text-[10px] font-bold text-emerald-200 uppercase">Admin Step 2</div>
+                            <div class="font-bold text-sm mt-1">[Manage Users]</div>
+                            <p class="text-xs text-emerald-100 mt-1">Upgrade tiers, verify emails, reset download quotas</p>
+                        </div>
+                        <div onclick="inspectWorkflowNode('admin_upload')" class="flow-node cursor-pointer p-4 rounded-xl border border-emerald-600 bg-emerald-800 text-white">
+                            <div class="text-[10px] font-bold text-emerald-200 uppercase">Admin Step 3</div>
+                            <div class="font-bold text-sm mt-1">[Upload Resources]</div>
+                            <p class="text-xs text-emerald-100 mt-1">Publish new categorized PDFs to S3/Cloud storage</p>
+                        </div>
+                        <div onclick="inspectWorkflowNode('admin_payments')" class="flow-node cursor-pointer p-4 rounded-xl border border-emerald-600 bg-emerald-800 text-white">
+                            <div class="text-[10px] font-bold text-emerald-200 uppercase">Admin Step 4</div>
+                            <div class="font-bold text-sm mt-1">[Monitor Payments]</div>
+                            <p class="text-xs text-emerald-100 mt-1">Audit Stripe/PayPal webhooks, MRR & download metrics</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node Inspector Detail Box -->
+                <div id="workflow-inspector" class="bg-emerald-900 text-white rounded-xl p-5 border border-emerald-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <span id="inspector-badge" class="text-[10px] font-bold uppercase tracking-widest text-emerald-200 bg-emerald-800 px-2.5 py-0.5 rounded">API & Logic Inspector</span>
+                        <h4 id="inspector-title" class="text-base font-bold">Select any node above to inspect its technical implementation</h4>
+                        <p id="inspector-desc" class="text-xs text-emerald-100">Displays Express.js route handler, PostgreSQL schema query, and security middleware checks.</p>
+                    </div>
+                    <code id="inspector-code" class="text-xs bg-white text-emerald-900 font-bold px-3.5 py-2 rounded-lg font-mono shrink-0 border border-emerald-300">
+                        POST /api/v1/subscriptions/checkout
+                    </code>
+                </div>
+            </div>
+
+            <!-- 6. TECH STACK ARCHITECTURE SHOWCASE -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg"><i class="fa-brands fa-react"></i></div>
+                    <h4 class="font-bold text-sm text-slate-900">Frontend Layer</h4>
+                    <p class="text-xs font-semibold text-emerald-600">React + TailwindCSS</p>
+                    <p class="text-xs text-slate-500">Responsive SPA, protected routes, Context/Redux state, dynamic quota gauges.</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg"><i class="fa-brands fa-node-js"></i></div>
+                    <h4 class="font-bold text-sm text-slate-900">Backend API</h4>
+                    <p class="text-xs font-semibold text-emerald-600">Node.js + Express</p>
+                    <p class="text-xs text-slate-500">RESTful API, JWT RBAC middleware, signed S3 PDF download streams.</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg"><i class="fa-solid fa-database"></i></div>
+                    <h4 class="font-bold text-sm text-slate-900">Database</h4>
+                    <p class="text-xs font-semibold text-emerald-600">PostgreSQL / MongoDB</p>
+                    <p class="text-xs text-slate-500">ACID transactions for payments, user roles, quota counters, and renewal dates.</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg"><i class="fa-solid fa-paper-plane"></i></div>
+                    <h4 class="font-bold text-sm text-slate-900">Email Service</h4>
+                    <p class="text-xs font-semibold text-emerald-600">SendGrid / Mailchimp</p>
+                    <p class="text-xs text-slate-500">Transactional double opt-in verification, password reset tokens & newsletters.</p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-lg"><i class="fa-brands fa-stripe-s"></i></div>
+                    <h4 class="font-bold text-sm text-slate-900">Payment Gateway</h4>
+                    <p class="text-xs font-semibold text-emerald-600">Stripe & PayPal SDK</p>
+                    <p class="text-xs text-slate-500">Recurring billing webhooks (`invoice.paid`) & 1-time single PDF checkouts.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 4: ADMIN DASHBOARD
+             ========================================== -->
+        <section id="view-admin" class="hidden space-y-8">
+            <!-- Admin Header Banner -->
+            <div class="bg-emerald-800 text-white rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div>
+                    <div class="inline-flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-emerald-200 mb-1">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Role-Based Admin Control Center</span>
+                    </div>
+                    <h2 class="text-2xl font-extrabold">Platform Operations, Users & Revenue</h2>
+                    <p class="text-xs text-emerald-100 mt-0.5">Manage users, upload learning PDFs, and inspect real-time Stripe/PayPal payment logs.</p>
+                </div>
+                <button onclick="openUploadResourceModal()" class="bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition flex items-center gap-2 shrink-0 shadow-md">
+                    <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i>
+                    <span>Upload New Learning PDF</span>
+                </button>
+            </div>
+
+            <!-- KPI Analytics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase">
+                        <span>Total Revenue</span>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center"><i class="fa-solid fa-dollar-sign"></i></span>
+                    </div>
+                    <div id="admin-stat-revenue" class="text-2xl font-extrabold text-slate-900 mt-2">$1,428.97</div>
+                    <p class="text-xs text-emerald-600 font-semibold mt-1"><i class="fa-solid fa-arrow-trend-up mr-1"></i>+18.4% vs last month</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase">
+                        <span>Registered Users</span>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center"><i class="fa-solid fa-users"></i></span>
+                    </div>
+                    <div id="admin-stat-users" class="text-2xl font-extrabold text-slate-900 mt-2">6</div>
+                    <p class="text-xs text-slate-500 mt-1">Across Free, Monthly, Yearly & Admin</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase">
+                        <span>Total PDF Downloads</span>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center"><i class="fa-solid fa-file-arrow-down"></i></span>
+                    </div>
+                    <div id="admin-stat-downloads" class="text-2xl font-extrabold text-slate-900 mt-2">342</div>
+                    <p class="text-xs text-emerald-600 font-semibold mt-1">Tracked in real time</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 uppercase">
+                        <span>Library Resources</span>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center"><i class="fa-solid fa-book"></i></span>
+                    </div>
+                    <div id="admin-stat-resources" class="text-2xl font-extrabold text-slate-900 mt-2">6 PDFs</div>
+                    <p class="text-xs text-slate-500 mt-1">4 Categories active</p>
+                </div>
+            </div>
+
+            <!-- Admin Split View: User Management + Resource Catalog -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- User & Subscription Management Table -->
+                <div class="lg:col-span-7 bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-emerald-100 bg-emerald-50/40 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Manage Users & Subscriptions</h3>
+                            <p class="text-xs text-slate-500">Modify user plans, verify emails, or replenish download quotas</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                                    <th class="py-3 px-4">User</th>
+                                    <th class="py-3 px-4">Verified</th>
+                                    <th class="py-3 px-4">Plan / Role</th>
+                                    <th class="py-3 px-4">Quota Left</th>
+                                    <th class="py-3 px-4 text-right">Quick Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-tbody" class="divide-y divide-emerald-100 text-xs bg-white">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Revenue Breakdown & Resource List -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-emerald-200 shadow-sm p-6 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Revenue by Subscription Tier</h3>
+                            <p class="text-xs text-slate-500">Live distribution across payment models</p>
+                        </div>
+                        <i class="fa-solid fa-chart-pie text-emerald-600 text-lg"></i>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <div class="flex justify-between font-semibold mb-1">
+                                <span>Premium Yearly ($149/yr)</span>
+                                <span class="text-emerald-800 font-bold">62% ($894.00)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-emerald-50 rounded-full overflow-hidden border border-emerald-100">
+                                <div class="bg-emerald-600 h-full rounded-full" style="width: 62%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between font-semibold mb-1">
+                                <span>Premium Monthly ($19/mo)</span>
+                                <span class="text-emerald-800 font-bold">28% ($399.00)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-emerald-50 rounded-full overflow-hidden border border-emerald-100">
+                                <div class="bg-emerald-500 h-full rounded-full" style="width: 28%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between font-semibold mb-1">
+                                <span>Single PDF Purchases ($7.99)</span>
+                                <span class="text-emerald-800 font-bold">10% ($135.97)</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-emerald-50 rounded-full overflow-hidden border border-emerald-100">
+                                <div class="bg-emerald-400 h-full rounded-full" style="width: 10%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-emerald-100 pt-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-3">Recently Uploaded Resources</h4>
+                        <div id="admin-resource-mini-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 5: AUTHENTICATION WORKFLOW PORTAL
+             ========================================== -->
+        <section id="view-auth" class="hidden max-w-md mx-auto py-4">
+            <div class="bg-white rounded-2xl border-2 border-emerald-200 shadow-lg overflow-hidden">
+                <!-- Auth Mode Switcher -->
+                <div class="grid grid-cols-3 border-b border-emerald-200 bg-emerald-50/60 text-xs font-bold">
+                    <button onclick="switchAuthSubView('login')" id="auth-tab-login" class="py-3.5 text-emerald-700 border-b-2 border-emerald-600 bg-white">Login</button>
+                    <button onclick="switchAuthSubView('register')" id="auth-tab-register" class="py-3.5 text-slate-500 hover:text-emerald-800">Register (Opt-In)</button>
+                    <button onclick="switchAuthSubView('reset')" id="auth-tab-reset" class="py-3.5 text-slate-500 hover:text-emerald-800">Reset Password</button>
+                </div>
+
+                <div class="p-6 sm:p-8 bg-white">
+                    <!-- LOGIN FORM -->
+                    <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                        <div class="text-center space-y-1 mb-4">
+                            <h3 class="text-xl font-extrabold text-slate-900">Welcome Back</h3>
+                            <p class="text-xs text-slate-500">Sign in to access your e-learning library & PDF quota</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                            <input type="email" id="login-email" required value="alex@eduvault.io" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                            <input type="password" id="login-password" required value="password123" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl shadow-md transition">
+                            Sign In to Account
+                        </button>
+                    </form>
+
+                    <!-- REGISTER FORM (With Double Opt-In Email Verification) -->
+                    <form id="form-register" onsubmit="handleRegisterSubmit(event)" class="hidden space-y-4">
+                        <div class="text-center space-y-1 mb-4">
+                            <h3 class="text-xl font-extrabold text-slate-900">Create Account</h3>
+                            <p class="text-xs text-slate-500">Triggers a simulated SendGrid Double Opt-In verification email</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                            <input type="text" id="reg-name" required placeholder="Jordan Lee" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                            <input type="email" id="reg-email" required placeholder="jordan@company.com" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                            <input type="password" id="reg-password" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Initial Subscription Plan</label>
+                            <select id="reg-plan" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm bg-emerald-50/40 font-medium">
+                                <option value="free">Normal (Free — View Only)</option>
+                                <option value="monthly">Premium Monthly ($19/mo)</option>
+                                <option value="yearly">Premium Yearly ($149/yr)</option>
+                            </select>
+                        </div>
+                        <label class="flex items-start space-x-2 text-xs text-slate-600 pt-1">
+                            <input type="checkbox" id="reg-newsletter" checked class="mt-0.5 rounded text-emerald-600">
+                            <span>Subscribe to weekly engineering PDF digests (Mailchimp Double Opt-in)</span>
+                        </label>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl shadow-md transition">
+                            Register & Send Verification Email
+                        </button>
+                    </form>
+
+                    <!-- PASSWORD RESET FORM -->
+                    <form id="form-reset" onsubmit="handlePasswordResetSubmit(event)" class="hidden space-y-4">
+                        <div class="text-center space-y-1 mb-4">
+                            <h3 class="text-xl font-extrabold text-slate-900">Reset Password</h3>
+                            <p class="text-xs text-slate-500">We'll dispatch a reset link to your Simulated Inbox</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Account Email</label>
+                            <input type="email" id="reset-email" required value="alex@eduvault.io" class="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm py-3 rounded-xl shadow-md transition">
+                            Send Reset Instructions
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 6: GOOGLE SHEET DATABASE & TELEMETRY HUB
+             ========================================== -->
+        <section id="view-database" class="hidden space-y-8">
+            <!-- Target Spreadsheet Header Banner -->
+            <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-950 text-white rounded-2xl p-6 sm:p-8 shadow-md border-2 border-emerald-700 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1.5">
+                        <div class="inline-flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
+                            <i class="fa-solid fa-database"></i>
+                            <span>Google Sheets Database Hub</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold">Live Spreadsheet Backend & Table Inspector</h2>
+                        <p class="text-xs sm:text-sm text-emerald-100 max-w-2xl">
+                            Connect EduVault frontend to your Google Spreadsheet via Google Apps Script Web App REST API. Reads and writes all tables in real time.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="https://docs.google.com/spreadsheets/d/18KbYjseMn8_qXwkh8Fe417DbHLq5V3CZFVCzs4UQQOw/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-emerald-50 text-emerald-950 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-up-right-from-square text-emerald-600"></i>
+                            <span>Open Target Google Sheet</span>
+                        </a>
+                        <button onclick="toggleSetupGuideModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl border border-emerald-500 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-book-bookmark"></i>
+                            <span>Setup Guide & Script</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Connection Status Pill & Target Link -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-emerald-700/60 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-emerald-200">Target Sheet ID:</span>
+                        <code class="bg-emerald-950 px-2 py-0.5 rounded font-mono text-emerald-300 font-bold border border-emerald-800">
+                            18KbYjseMn8_qXwkh8Fe417DbHLq5V3CZFVCzs4UQQOw
+                        </code>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <span class="text-emerald-200">Connection State:</span>
+                        <span id="gsheet-status-pill" class="inline-flex items-center px-2.5 py-0.5 rounded-full font-bold text-xs bg-white/20 text-white">
+                            <span class="w-2 h-2 rounded-full mr-1.5 bg-slate-300"></span>
+                            <span>Local Resilient Mode</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Setup Guide Info Banner -->
+            <div id="gsheet-setup-banner" class="hidden bg-emerald-50/80 border-2 border-emerald-300 rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-emerald-200 pb-3">
+                    <h3 class="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-code text-emerald-600"></i>
+                        <span>Google Apps Script Deployment in 4 Steps</span>
+                    </h3>
+                    <button onclick="copyAppsScriptCodeToClipboard()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Copy Apps Script Code</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs text-slate-700">
+                    <div class="bg-white p-4 rounded-xl border border-emerald-200 space-y-1.5">
+                        <span class="font-bold text-emerald-700">1. Open Sheet</span>
+                        <p>Click "Open Target Google Sheet", then open <strong>Extensions &gt; Apps Script</strong>.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-emerald-200 space-y-1.5">
+                        <span class="font-bold text-emerald-700">2. Paste Code</span>
+                        <p>Paste the copied script into <code>Code.gs</code> and click <strong>Ctrl+S</strong> to save.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-emerald-200 space-y-1.5">
+                        <span class="font-bold text-emerald-700">3. Run Init</span>
+                        <p>Select <code>initializeDatabase</code> from toolbar and click <strong>Run</strong> to format tables.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-emerald-200 space-y-1.5">
+                        <span class="font-bold text-emerald-700">4. Deploy Web App</span>
+                        <p>Click <strong>Deploy &gt; New deployment &gt; Web app</strong>, set access to <strong>Anyone</strong>, and copy URL.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web App URL Configuration Card -->
+            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm p-6 space-y-4">
+                <form onsubmit="handleSaveWebAppEndpoint(event)" class="space-y-3">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-emerald-800">
+                        Google Apps Script Web App Endpoint URL:
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="url" id="webapp-url-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="flex-grow px-4 py-2.5 rounded-xl border border-emerald-300 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50/20">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition shrink-0 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Save & Connect</span>
+                        </button>
+                        <button type="button" onclick="triggerManualSync()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-4 py-2.5 rounded-xl transition shrink-0 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>Sync All Tables</span>
+                        </button>
+                        <button type="button" onclick="triggerRemoteInitDatabase()" class="bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-xs px-3.5 py-2.5 rounded-xl transition shrink-0 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-magic-wand-sparkles"></i>
+                            <span>Initialize Tables</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- DATABASE TABLES INSPECTOR -->
+            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-emerald-100 bg-emerald-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0" id="db-table-tabs">
+                        <button onclick="switchDbTableTab('users')" id="dbtab-users" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-emerald-600 text-white shadow-sm">
+                            <span>Users</span>
+                            <span id="badge-count-users" class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-white text-emerald-800">6</span>
+                        </button>
+                        <button onclick="switchDbTableTab('resources')" id="dbtab-resources" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-white text-slate-700 border border-emerald-200">
+                            <span>Resources</span>
+                            <span id="badge-count-resources" class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-emerald-100 text-emerald-800">6</span>
+                        </button>
+                        <button onclick="switchDbTableTab('payments')" id="dbtab-payments" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-white text-slate-700 border border-emerald-200">
+                            <span>Payments</span>
+                            <span id="badge-count-payments" class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-emerald-100 text-emerald-800">3</span>
+                        </button>
+                        <button onclick="switchDbTableTab('emails')" id="dbtab-emails" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-white text-slate-700 border border-emerald-200">
+                            <span>Emails</span>
+                            <span id="badge-count-emails" class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-emerald-100 text-emerald-800">1</span>
+                        </button>
+                        <button onclick="switchDbTableTab('subscriptions')" id="dbtab-subscriptions" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-white text-slate-700 border border-emerald-200">
+                            <span>Subscriptions</span>
+                            <span id="badge-count-subscriptions" class="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-emerald-100 text-emerald-800">3</span>
+                        </button>
+                    </div>
+
+                    <div class="relative max-w-xs w-full">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="db-table-search" oninput="renderCurrentDbTable()" placeholder="Search active table rows..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-emerald-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-[460px]">
+                    <div id="db-table-content"></div>
+                </div>
+            </div>
+
+            <!-- REAL-TIME SYNC AUDIT FEED -->
+            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm p-6 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-wave-square text-emerald-600"></i>
+                        <span>Google Sheet Sync & Mutation Activity Log</span>
+                    </h3>
+                    <span class="text-[11px] text-slate-500">Live Telemetry Feed</span>
+                </div>
+                <div id="audit-log-container" class="bg-slate-900 text-emerald-300 font-mono text-xs rounded-xl p-4 max-h-44 overflow-y-auto space-y-1">
+                    <div class="text-slate-400">[12:00:00] Platform initialized with 5 relational tables</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==========================================
+         MODAL 1: STRIPE / PAYPAL CHECKOUT GATEWAY
+         ========================================== -->
+    <div id="checkout-modal" class="fixed inset-0 z-50 hidden bg-emerald-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full border-2 border-emerald-200 shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-lock text-emerald-300"></i>
+                    <span class="font-bold text-sm">Secure Payment Gateway</span>
+                </div>
+                <button onclick="closeCheckoutModal()" class="text-emerald-200 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5 bg-white">
+                <!-- Order Summary -->
+                <div class="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Selected Tier</span>
+                        <h4 id="checkout-plan-name" class="font-bold text-slate-900 text-base">Premium Monthly Plan</h4>
+                        <p id="checkout-plan-desc" class="text-xs text-slate-600">15 PDF Downloads / Month • Auto-renews</p>
+                    </div>
+                    <div id="checkout-plan-price" class="text-xl font-extrabold text-emerald-800">$19.00</div>
+                </div>
+
+                <!-- Gateway Selector Tabs -->
+                <div class="grid grid-cols-2 gap-2 bg-emerald-50 p-1 rounded-xl border border-emerald-200">
+                    <button type="button" onclick="selectPaymentProvider('Stripe')" id="gw-btn-stripe" class="py-2 rounded-lg text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center gap-1.5">
+                        <i class="fa-brands fa-stripe text-emerald-600 text-base"></i> Card (Stripe)
+                    </button>
+                    <button type="button" onclick="selectPaymentProvider('PayPal')" id="gw-btn-paypal" class="py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-emerald-900 flex items-center justify-center gap-1.5">
+                        <i class="fa-brands fa-paypal text-emerald-600 text-sm"></i> PayPal Express
+                    </button>
+                </div>
+
+                <!-- Simulated Card Fields -->
+                <div id="stripe-card-fields" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Cardholder Name</label>
+                        <input type="text" value="Alex Rivera" class="w-full px-3 py-2 border border-emerald-200 rounded-xl text-xs font-medium bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Card Number (Test Mode)</label>
+                        <div class="relative">
+                            <input type="text" value="4242 •••• •••• 4242" readonly class="w-full px-3 py-2 border border-emerald-200 rounded-xl text-xs font-mono bg-emerald-50/40">
+                            <i class="fa-brands fa-cc-visa absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 text-base"></i>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Expiry</label>
+                            <input type="text" value="08 / 29" readonly class="w-full px-3 py-2 border border-emerald-200 rounded-xl text-xs font-mono bg-emerald-50/40">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">CVC</label>
+                            <input type="text" value="884" readonly class="w-full px-3 py-2 border border-emerald-200 rounded-xl text-xs font-mono bg-emerald-50/40">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulated PayPal Box -->
+                <div id="paypal-fields" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center space-y-2">
+                    <i class="fa-brands fa-paypal text-3xl text-emerald-600"></i>
+                    <p class="text-xs text-slate-700 font-medium">You will authorize instant subscription activation via your verified PayPal balance.</p>
+                </div>
+
+                <button onclick="confirmGatewayPayment()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="confirm-pay-btn-text">Pay & Activate Subscription Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 2: PDF READER / PREVIEW MODAL
+         ========================================== -->
+    <div id="preview-modal" class="fixed inset-0 z-50 hidden bg-emerald-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full border-2 border-emerald-200 shadow-2xl overflow-hidden">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-file-pdf text-emerald-300"></i>
+                    <span id="preview-modal-title" class="font-bold text-sm">Resource Preview</span>
+                </div>
+                <button onclick="closePreviewModal()" class="text-emerald-200 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 bg-white">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span id="preview-modal-cat" class="bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2.5 py-0.5 rounded-full">System Design</span>
+                    <span id="preview-modal-pages" class="text-slate-500 font-medium">142 Pages</span>
+                    <span class="text-slate-300">•</span>
+                    <span id="preview-modal-author" class="text-slate-600 font-medium">By Dr. Elena Vance</span>
+                </div>
+                <div class="bg-emerald-50/40 border border-emerald-200 rounded-xl p-5 space-y-3 max-h-72 overflow-y-auto text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    <p class="font-bold text-slate-900">Executive Summary (Public Preview Mode):</p>
+                    <p id="preview-modal-abstract"></p>
+                    <div class="border-t border-dashed border-emerald-300 pt-3 text-xs text-emerald-800 italic">
+                        <i class="fa-solid fa-lock mr-1 text-emerald-600"></i>Full diagrams, production code repositories, and printable exercises are included in the complete downloadable PDF.
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                    <button onclick="closePreviewModal()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-50">
+                        Close Preview
+                    </button>
+                    <button id="preview-modal-download-btn" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition">
+                        Download Full PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 3: SIMULATED EMAIL CLIENT (Double Opt-in & Password Reset)
+         ========================================== -->
+    <div id="email-modal" class="fixed inset-0 z-50 hidden bg-emerald-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full border-2 border-emerald-200 shadow-2xl overflow-hidden">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-envelope-open-text text-emerald-300"></i>
+                    <span class="font-bold text-sm">SendGrid / Mailchimp Simulated Inbox</span>
+                </div>
+                <button onclick="closeEmailClientModal()" class="text-emerald-200 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="email-inbox-list" class="p-6 space-y-4 max-h-[420px] overflow-y-auto bg-white">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL 4: ADMIN UPLOAD NEW PDF RESOURCE
+         ========================================== -->
+    <div id="upload-modal" class="fixed inset-0 z-50 hidden bg-emerald-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full border-2 border-emerald-200 shadow-2xl overflow-hidden">
+            <div class="bg-emerald-800 text-white px-6 py-4 flex items-center justify-between">
+                <span class="font-bold text-sm"><i class="fa-solid fa-cloud-arrow-up mr-2 text-emerald-300"></i>Upload Learning Resource (PDF)</span>
+                <button onclick="closeUploadResourceModal()" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="handleAdminResourceUpload(event)" class="p-6 space-y-4 text-xs bg-white">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">PDF Title</label>
+                    <input type="text" id="up-title" required placeholder="e.g., Kubernetes Production Security Patterns" class="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Category</label>
+                        <select id="up-category" class="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm bg-emerald-50/40">
+                            <option value="System Design">System Design</option>
+                            <option value="Full-Stack">Full-Stack</option>
+                            <option value="AI & Data">AI & Data</option>
+                            <option value="Cloud & Security">Cloud & Security</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Page Count</label>
+                        <input type="number" id="up-pages" required value="96" min="10" class="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Author / Instructor</label>
+                    <input type="text" id="up-author" required placeholder="Prof. Marcus Sterling" class="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Executive Summary</label>
+                    <textarea id="up-desc" rows="3" required placeholder="Comprehensive guide covering..." class="w-full px-3 py-2 border border-emerald-300 rounded-xl text-sm"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-2.5 rounded-xl shadow-md">
+                    Publish Resource to Library
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-emerald-200 mt-12 py-6 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-emerald-800">EduVault E-Learning</span>
+                <span>•</span>
+                <span>RBAC + Double Opt-In + Tiered Quota Engine</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span>React / Tailwind UI</span>
+                <span>•</span>
+                <span>Node / Express API</span>
+                <span>•</span>
+                <span>Stripe & PayPal Ready</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         APPLICATION JAVASCRIPT & STATE ENGINE
+         ========================================== -->
+    <script>
+        // 1. INITIAL DATABASE STATE
+        const state = {
+            currentTab: 'library',
+            selectedCategory: 'All',
+            selectedGateway: 'Stripe',
+            pendingCheckoutPlan: 'monthly',
+            pendingSinglePdfId: 101,
+
+            // Current Active User Session
+            currentUser: {
+                id: 1,
+                name: 'Alex Rivera',
+                email: 'alex@eduvault.io',
+                role: 'premium',           // 'normal' | 'premium' | 'admin'
+                plan: 'monthly',           // 'free' | 'monthly' | 'yearly' | 'single'
+                emailVerified: true,       // Double opt-in status
+                quotaRemaining: 12,
+                quotaMax: 15,
+                renewalDate: 'Nov 17, 2026',
+                singlePdfUnlockedIds: []   // Array of resource IDs unlocked via Single PDF Purchase
+            },
+
+            // All Registered Users (For Admin Management)
+            users: [
+                { id: 1, name: 'Alex Rivera', email: 'alex@eduvault.io', role: 'premium', plan: 'monthly', emailVerified: true, quotaRemaining: 12, quotaMax: 15, renewalDate: 'Nov 17, 2026', singlePdfUnlockedIds: [] },
+                { id: 2, name: 'Sophia Chen', email: 'sophia@stanford.edu', role: 'premium', plan: 'yearly', emailVerified: true, quotaRemaining: 999, quotaMax: 999, renewalDate: 'Oct 17, 2027', singlePdfUnlockedIds: [] },
+                { id: 3, name: 'Liam O\'Connor', email: 'liam@freelance.dev', role: 'normal', plan: 'free', emailVerified: true, quotaRemaining: 0, quotaMax: 0, renewalDate: 'N/A (Free)', singlePdfUnlockedIds: [] },
+                { id: 4, name: 'Maya Lin', email: 'maya@startup.io', role: 'normal', plan: 'single', emailVerified: true, quotaRemaining: 1, quotaMax: 1, renewalDate: 'One-Time Credit', singlePdfUnlockedIds: [102] },
+                { id: 5, name: 'Noah Patel', email: 'noah@unverified.org', role: 'normal', plan: 'free', emailVerified: false, quotaRemaining: 0, quotaMax: 0, renewalDate: 'Pending Opt-In', singlePdfUnlockedIds: [] },
+                { id: 6, name: 'Elena Vance (Admin)', email: 'admin@eduvault.io', role: 'admin', plan: 'yearly', emailVerified: true, quotaRemaining: 999, quotaMax: 999, renewalDate: 'Permanent', singlePdfUnlockedIds: [] }
+            ],
+
+            // E-Learning PDF Catalog
+            resources: [
+                {
+                    id: 101,
+                    title: 'Distributed Systems & High-Availability Architecture',
+                    category: 'System Design',
+                    author: 'Dr. Elena Vance',
+                    pages: 184,
+                    price: 7.99,
+                    downloads: 118,
+                    abstract: 'Master consensus algorithms (Raft, Paxos), event-driven microservices, idempotency keys, and multi-region failover blueprints used at scale.'
+                },
+                {
+                    id: 102,
+                    title: 'Full-Stack React, Node.js & PostgreSQL Production Handbook',
+                    category: 'Full-Stack',
+                    author: 'Marcus Sterling',
+                    pages: 210,
+                    price: 7.99,
+                    downloads: 94,
+                    abstract: 'End-to-end engineering guide covering JWT rotation, RBAC middleware, Prisma/PostgreSQL indexing, and Stripe webhook idempotency.'
+                },
+                {
+                    id: 103,
+                    title: 'Applied Large Language Models & RAG Pipelines',
+                    category: 'AI & Data',
+                    author: 'Dr. Priya Nair',
+                    pages: 156,
+                    price: 7.99,
+                    downloads: 67,
+                    abstract: 'Build low-latency vector search pipelines, semantic chunking strategies, and evaluation harnesses for enterprise AI assistants.'
+                },
+                {
+                    id: 104,
+                    title: 'Zero-Trust Cloud Security & OAuth 2.1 Implementation',
+                    category: 'Cloud & Security',
+                    author: 'Devon Brooks',
+                    pages: 128,
+                    price: 7.99,
+                    downloads: 41,
+                    abstract: 'Practical reference for PKCE flows, double opt-in verification tokens, hardware MFA, and container sandboxing in AWS & GCP.'
+                },
+                {
+                    id: 105,
+                    title: 'Database Internals: B-Trees, WAL & Query Optimizers',
+                    category: 'System Design',
+                    author: 'Prof. Kenji Sato',
+                    pages: 240,
+                    price: 7.99,
+                    downloads: 15,
+                    abstract: 'Deep dive into storage engines, MVCC snapshot isolation, write-ahead logging, and diagnosing slow PostgreSQL execution plans.'
+                },
+                {
+                    id: 106,
+                    title: 'Modern TailwindCSS Design Systems & Accessibility',
+                    category: 'Full-Stack',
+                    author: 'Claire Dubois',
+                    pages: 112,
+                    price: 7.99,
+                    downloads: 7,
+                    abstract: 'Craft WCAG AA compliant interfaces, responsive fluid typography, dark-mode tokens, and reusable component primitives.'
+                }
+            ],
+
+            // Payment Ledger
+            payments: [
+                { id: 'TXN-99481', date: 'Oct 17, 2026', user: 'Alex Rivera', item: 'Premium Monthly Plan', gateway: 'Stripe', amount: 19.00, status: 'Succeeded' },
+                { id: 'TXN-99420', date: 'Oct 12, 2026', user: 'Sophia Chen', item: 'Premium Yearly Plan', gateway: 'PayPal', amount: 149.00, status: 'Succeeded' },
+                { id: 'TXN-99385', date: 'Oct 09, 2026', user: 'Maya Lin', item: 'Single PDF (#102 Full-Stack Handbook)', gateway: 'Stripe', amount: 7.99, status: 'Succeeded' }
+            ],
+
+            // Simulated Transactional Emails
+            emails: [
+                {
+                    id: 1,
+                    to: 'alex@eduvault.io',
+                    subject: '[SendGrid] Double Opt-In Verified & Monthly Subscription Active',
+                    timestamp: 'Oct 17, 2026 • 09:15 AM',
+                    body: 'Your email address has been verified via double opt-in. Your Premium Monthly quota of 15 PDF downloads is active until Nov 17, 2026.',
+                    actionType: null
+                }
+            ],
+
+            // Subscriptions
+            subscriptions: [
+                { id: 'SUB-1001', userId: 1, userEmail: 'alex@eduvault.io', planName: 'monthly', billingCycle: 'Monthly', price: 19.00, status: 'Active', startDate: 'Oct 17, 2026', nextBillingDate: 'Nov 17, 2026' },
+                { id: 'SUB-1002', userId: 2, userEmail: 'sophia@stanford.edu', planName: 'yearly', billingCycle: 'Annual', price: 149.00, status: 'Active', startDate: 'Oct 17, 2026', nextBillingDate: 'Oct 17, 2027' },
+                { id: 'SUB-1003', userId: 4, userEmail: 'maya@startup.io', planName: 'single', billingCycle: 'One-Time', price: 7.99, status: 'Active', startDate: 'Oct 09, 2026', nextBillingDate: 'Permanent' }
+            ],
+
+            // Google Sheet Web App Integration
+            webAppUrl: localStorage.getItem('eduvault_webapp_url') || '',
+            sheetStatus: 'offline',
+            activeDbTab: 'users'
+        };
+
+        // 2. INITIALIZE APPLICATION ON LOAD
+        window.onload = function () {
+            populateSinglePdfDropdown();
+            syncHeaderAndBanner();
+            renderResources();
+            renderPaymentHistory();
+            renderAdminDashboard();
+            renderSimulatedInbox();
+            highlightWorkflowBranches();
+            initGoogleSheetFrontend();
+        };
+
+        // 3. NAVIGATION & TAB SWITCHING
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            const views = ['library', 'pricing', 'workflow', 'admin', 'auth', 'database'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.toggle('hidden', v !== tabName);
+
+                const navBtn = document.getElementById(`nav-${v}`);
+                if (navBtn) {
+                    if (v === tabName) {
+                        navBtn.className = 'nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 transition flex items-center';
+                    } else {
+                        navBtn.className = 'nav-btn px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/60 transition flex items-center';
+                    }
+                }
+
+                const mnavBtn = document.getElementById(`mnav-${v}`);
+                if (mnavBtn) {
+                    if (v === tabName) {
+                        mnavBtn.className = 'mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                    } else {
+                        mnavBtn.className = 'mnav-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600';
+                    }
+                }
+            });
+
+            if (tabName === 'admin') renderAdminDashboard();
+            if (tabName === 'pricing') renderPaymentHistory();
+            if (tabName === 'workflow') highlightWorkflowBranches();
+            if (tabName === 'database') renderCurrentDbTable();
+        }
+
+        // 4. QUICK PERSONA SWITCHER (For Testing RBAC & Subscription Rules)
+        function switchQuickPersona(personaKey) {
+            const selector = document.getElementById('quick-role-select');
+            if (selector && selector.value !== personaKey) {
+                selector.value = personaKey;
+            }
+
+            if (personaKey === 'normal') {
+                state.currentUser = {
+                    id: 3, name: "Liam O'Connor", email: 'liam@freelance.dev',
+                    role: 'normal', plan: 'free', emailVerified: true,
+                    quotaRemaining: 0, quotaMax: 0, renewalDate: 'N/A (Free Tier)',
+                    singlePdfUnlockedIds: []
+                };
+                showToast('Switched to Normal User (Free — View Only)', 'info');
+            } else if (personaKey === 'premium_monthly') {
+                state.currentUser = {
+                    id: 1, name: 'Alex Rivera', email: 'alex@eduvault.io',
+                    role: 'premium', plan: 'monthly', emailVerified: true,
+                    quotaRemaining: 12, quotaMax: 15, renewalDate: 'Nov 17, 2026',
+                    singlePdfUnlockedIds: []
+                };
+                showToast('Switched to Premium Monthly (12/15 Quota)', 'success');
+            } else if (personaKey === 'premium_yearly') {
+                state.currentUser = {
+                    id: 2, name: 'Sophia Chen', email: 'sophia@stanford.edu',
+                    role: 'premium', plan: 'yearly', emailVerified: true,
+                    quotaRemaining: 999, quotaMax: 999, renewalDate: 'Oct 17, 2027',
+                    singlePdfUnlockedIds: []
+                };
+                showToast('Switched to Premium Yearly (Unlimited Downloads)', 'success');
+            } else if (personaKey === 'single_buyer') {
+                state.currentUser = {
+                    id: 4, name: 'Maya Lin', email: 'maya@startup.io',
+                    role: 'normal', plan: 'single', emailVerified: true,
+                    quotaRemaining: 1, quotaMax: 1, renewalDate: 'One-Time Purchase',
+                    singlePdfUnlockedIds: [102]
+                };
+                showToast('Switched to Single PDF Buyer (1-Time Download for PDF #102)', 'warning');
+            } else if (personaKey === 'unverified') {
+                state.currentUser = {
+                    id: 5, name: 'Noah Patel', email: 'noah@unverified.org',
+                    role: 'normal', plan: 'free', emailVerified: false,
+                    quotaRemaining: 0, quotaMax: 0, renewalDate: 'Pending Verification',
+                    singlePdfUnlockedIds: []
+                };
+                showToast('Switched to Unverified User (Double Opt-In Required)', 'warning');
+            } else if (personaKey === 'admin') {
+                state.currentUser = {
+                    id: 6, name: 'Elena Vance (Admin)', email: 'admin@eduvault.io',
+                    role: 'admin', plan: 'yearly', emailVerified: true,
+                    quotaRemaining: 999, quotaMax: 999, renewalDate: 'Permanent Admin',
+                    singlePdfUnlockedIds: []
+                };
+                showToast('Switched to Platform Admin', 'success');
+            }
+
+            syncHeaderAndBanner();
+            renderResources();
+            highlightWorkflowBranches();
+        }
+
+        // 5. SYNC HEADER, QUOTA TELEMETRY & VERIFICATION BANNER
+        function syncHeaderAndBanner() {
+            const u = state.currentUser;
+            const summaryEl = document.getElementById('header-user-summary');
+            const loginBtn = document.getElementById('header-login-btn');
+            const unverifiedBanner = document.getElementById('unverified-warning');
+
+            if (!u) {
+                summaryEl.classList.add('hidden');
+                loginBtn.classList.remove('hidden');
+                unverifiedBanner.classList.add('hidden');
+                return;
+            }
+
+            summaryEl.classList.remove('hidden');
+            loginBtn.classList.add('hidden');
+            unverifiedBanner.classList.toggle('hidden', u.emailVerified);
+
+            document.getElementById('header-user-name').textContent = u.name;
+
+            // Role badge styling
+            const badge = document.getElementById('header-role-badge');
+            if (u.role === 'admin') {
+                badge.textContent = 'ADMIN';
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white';
+            } else if (u.plan === 'yearly') {
+                badge.textContent = 'YEARLY PRO';
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+            } else if (u.plan === 'monthly') {
+                badge.textContent = 'MONTHLY PRO';
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+            } else if (u.plan === 'single') {
+                badge.textContent = 'SINGLE PDF';
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300';
+            } else {
+                badge.textContent = 'FREE USER';
+                badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-slate-700 border border-emerald-200';
+            }
+
+            const quotaText = u.plan === 'yearly' || u.role === 'admin'
+                ? 'Quota: Unlimited PDFs'
+                : `Quota: ${u.quotaRemaining} / ${u.quotaMax} Downloads left`;
+            document.getElementById('header-quota-text').textContent = quotaText;
+
+            // Sync Library Hero Telemetry
+            const planLabels = {
+                free: 'Normal (Free — View Only)',
+                monthly: 'Premium Monthly Plan',
+                yearly: 'Premium Yearly Plan (Unlimited)',
+                single: 'Single PDF Purchase Tier'
+            };
+            document.getElementById('library-hero-tier-pill').textContent = `Active Tier: ${planLabels[u.plan] || 'Free'}`;
+            document.getElementById('quota-card-title').textContent = planLabels[u.plan] || 'Normal (Free)';
+            document.getElementById('quota-fraction-badge').textContent = (u.plan === 'yearly' || u.role === 'admin')
+                ? 'Unlimited'
+                : `${u.quotaRemaining} / ${u.quotaMax} PDFs`;
+
+            const pct = u.quotaMax > 0 ? Math.min(100, Math.round((u.quotaRemaining / u.quotaMax) * 100)) : 0;
+            document.getElementById('quota-progress-bar').style.width = `${pct}%`;
+            document.getElementById('quota-renewal-date').textContent = u.renewalDate;
+
+            const verifiedEl = document.getElementById('quota-email-verified');
+            if (u.emailVerified) {
+                verifiedEl.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i>Verified (Double Opt-In)';
+                verifiedEl.className = 'font-bold text-emerald-700';
+            } else {
+                verifiedEl.innerHTML = '<i class="fa-solid fa-clock mr-1"></i>Unverified (Pending)';
+                verifiedEl.className = 'font-bold text-slate-600';
+            }
+        }
+
+        // 6. RENDER E-LEARNING RESOURCE CARDS WITH DYNAMIC ACCESS LOGIC
+        function setCategoryFilter(cat) {
+            state.selectedCategory = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = 'cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition';
+                } else {
+                    btn.className = 'cat-pill px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition';
+                }
+            });
+            renderResources();
+        }
+
+        function canUserDownloadResource(resourceId) {
+            const u = state.currentUser;
+            if (!u) return { allowed: false, reason: 'Please sign in first' };
+            if (!u.emailVerified) return { allowed: false, reason: 'Verify Email first' };
+            if (u.role === 'admin' || u.plan === 'yearly') return { allowed: true, reason: 'Unlimited Access' };
+            if (u.plan === 'monthly' && u.quotaRemaining > 0) return { allowed: true, reason: `Use 1 Quota (${u.quotaRemaining} left)` };
+            if (u.singlePdfUnlockedIds.includes(resourceId) && u.quotaRemaining > 0) {
+                return { allowed: true, reason: '1-Time Purchased PDF' };
+            }
+            return { allowed: false, reason: 'Locked (Upgrade or Buy Single PDF)' };
+        }
+
+        function renderResources() {
+            const grid = document.getElementById('resource-grid');
+            const query = (document.getElementById('resource-search')?.value || '').toLowerCase();
+
+            const filtered = state.resources.filter(r => {
+                const matchesCat = state.selectedCategory === 'All' || r.category === state.selectedCategory;
+                const matchesQuery = r.title.toLowerCase().includes(query) ||
+                                     r.author.toLowerCase().includes(query) ||
+                                     r.category.toLowerCase().includes(query);
+                return matchesCat && matchesQuery;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-200">
+                        <i class="fa-solid fa-folder-open text-3xl text-emerald-300 mb-2"></i>
+                        <p class="font-bold text-slate-700">No matching PDF resources found</p>
+                        <p class="text-xs text-slate-500 mt-1">Try clearing your search filter or uploading a new PDF from the Admin Dashboard.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(r => {
+                const access = canUserDownloadResource(r.id);
+                const isSingleUnlocked = state.currentUser?.singlePdfUnlockedIds.includes(r.id);
+
+                return `
+                    <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-400 transition flex flex-col justify-between p-6">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">${r.category}</span>
+                                <span class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-file-pdf text-emerald-600 mr-1"></i>${r.pages} pages</span>
+                            </div>
+
+                            <h3 class="font-bold text-base text-slate-900 leading-snug">${r.title}</h3>
+                            <p class="text-xs text-slate-600 line-clamp-3">${r.abstract}</p>
+                        </div>
+
+                        <div class="pt-5 mt-5 border-t border-emerald-100 space-y-3">
+                            <div class="flex items-center justify-between text-xs text-slate-500">
+                                <span><i class="fa-solid fa-user-pen text-emerald-600 mr-1"></i>${r.author}</span>
+                                <span><i class="fa-solid fa-download text-emerald-600 mr-1"></i>${r.downloads} downloads</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="openPreviewModal(${r.id})" class="py-2 px-3 rounded-xl border border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                                    <i class="fa-regular fa-eye"></i>
+                                    <span>View Preview</span>
+                                </button>
+
+                                ${access.allowed ? `
+                                    <button onclick="triggerPdfDownload(${r.id})" class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                                        <span>${isSingleUnlocked ? '1-Time Download' : 'Download PDF'}</span>
+                                    </button>
+                                ` : `
+                                    <button onclick="promptSingleOrUpgrade(${r.id})" class="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 border border-emerald-200 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-lock text-emerald-600"></i>
+                                        <span>Unlock ($${r.price})</span>
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 7. HANDLE PDF DOWNLOAD & QUOTA DECREMENT LOGIC
+        function triggerPdfDownload(resourceId) {
+            const resource = state.resources.find(r => r.id === resourceId);
+            if (!resource) return;
+
+            const access = canUserDownloadResource(resourceId);
+            if (!access.allowed) {
+                showToast(access.reason, 'error');
+                return;
+            }
+
+            const u = state.currentUser;
+
+            // If Single PDF purchase credit, consume the 1-time credit for this resource
+            if (u.plan === 'single' || u.singlePdfUnlockedIds.includes(resourceId)) {
+                u.singlePdfUnlockedIds = u.singlePdfUnlockedIds.filter(id => id !== resourceId);
+                u.quotaRemaining = Math.max(0, u.quotaRemaining - 1);
+                showToast(`Downloaded "${resource.title}". One-time Single PDF credit consumed!`, 'success');
+            } else if (u.plan === 'monthly') {
+                u.quotaRemaining = Math.max(0, u.quotaRemaining - 1);
+                showToast(`Downloaded "${resource.title}". Remaining Monthly Quota: ${u.quotaRemaining}/${u.quotaMax}`, 'success');
+            } else {
+                showToast(`Downloaded "${resource.title}" via Unlimited Tier!`, 'success');
+            }
+
+            resource.downloads += 1;
+
+            // Update matching user in admin list
+            const dbUser = state.users.find(item => item.id === u.id);
+            if (dbUser) {
+                dbUser.quotaRemaining = u.quotaRemaining;
+                dbUser.singlePdfUnlockedIds = [...u.singlePdfUnlockedIds];
+            }
+
+            syncHeaderAndBanner();
+            renderResources();
+            closePreviewModal();
+            syncMutationToGoogleSheet('updateQuota', { userId: u.id, resourceId });
+        }
+
+        function promptSingleOrUpgrade(resourceId) {
+            const u = state.currentUser;
+            if (u && !u.emailVerified) {
+                showToast('Please verify your email address (Double Opt-In) before unlocking PDFs.', 'warning');
+                return;
+            }
+            state.pendingSinglePdfId = resourceId;
+            document.getElementById('subscription-dropdown').value = 'single';
+            handleSubscriptionDropdownChange('single');
+            document.getElementById('single-pdf-target').value = String(resourceId);
+            openCheckoutFromDropdown();
+        }
+
+        // 8. SUBSCRIPTION DROPDOWN & CHECKOUT GATEWAY FLOW
+        function populateSinglePdfDropdown() {
+            const select = document.getElementById('single-pdf-target');
+            if (!select) return;
+            select.innerHTML = state.resources.map(r =>
+                `<option value="${r.id}">#${r.id} — ${r.title} ($${r.price})</option>`
+            ).join('');
+        }
+
+        function handleSubscriptionDropdownChange(planValue) {
+            state.pendingCheckoutPlan = planValue;
+            const singleContainer = document.getElementById('single-pdf-selector-container');
+            const actionCol = document.getElementById('dropdown-action-col');
+            const btnLabel = document.getElementById('dropdown-checkout-btn-label');
+
+            if (planValue === 'single') {
+                singleContainer.classList.remove('hidden');
+                actionCol.className = 'md:col-span-3 flex items-center justify-end';
+                btnLabel.textContent = 'Buy PDF ($7.99)';
+            } else {
+                singleContainer.classList.add('hidden');
+                actionCol.className = 'md:col-span-7 flex items-center justify-end';
+                if (planValue === 'free') btnLabel.textContent = 'Activate Free Plan ($0.00)';
+                if (planValue === 'monthly') btnLabel.textContent = 'Proceed to Checkout ($19.00/mo)';
+                if (planValue === 'yearly') btnLabel.textContent = 'Proceed to Checkout ($149.00/yr)';
+            }
+        }
+
+        function selectPlanAndCheckout(planKey) {
+            const dropdown = document.getElementById('subscription-dropdown');
+            if (dropdown) {
+                dropdown.value = planKey;
+                handleSubscriptionDropdownChange(planKey);
+            }
+            openCheckoutFromDropdown();
+        }
+
+        function openCheckoutFromDropdown() {
+            const plan = document.getElementById('subscription-dropdown').value;
+            state.pendingCheckoutPlan = plan;
+
+            if (plan === 'free') {
+                activateSubscriptionPlan('free', 0, 'System');
+                return;
+            }
+
+            const titleEl = document.getElementById('checkout-plan-name');
+            const descEl = document.getElementById('checkout-plan-desc');
+            const priceEl = document.getElementById('checkout-plan-price');
+
+            if (plan === 'monthly') {
+                titleEl.textContent = 'Premium Monthly Subscription';
+                descEl.textContent = '15 PDF Downloads / Month • Auto-renews every 30 days';
+                priceEl.textContent = '$19.00';
+            } else if (plan === 'yearly') {
+                titleEl.textContent = 'Premium Yearly Subscription';
+                descEl.textContent = 'Unlimited PDF Downloads • Renews annually';
+                priceEl.textContent = '$149.00';
+            } else if (plan === 'single') {
+                const targetId = Number(document.getElementById('single-pdf-target').value);
+                state.pendingSinglePdfId = targetId;
+                const res = state.resources.find(r => r.id === targetId) || state.resources[0];
+                titleEl.textContent = `Single PDF: ${res.title}`;
+                descEl.textContent = 'One-Time Download Credit • Instant Unlock';
+                priceEl.textContent = '$7.99';
+            }
+
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkout-modal').classList.add('hidden');
+        }
+
+        function selectPaymentProvider(provider) {
+            state.selectedGateway = provider;
+            const stripeBtn = document.getElementById('gw-btn-stripe');
+            const paypalBtn = document.getElementById('gw-btn-paypal');
+            const stripeFields = document.getElementById('stripe-card-fields');
+            const paypalFields = document.getElementById('paypal-fields');
+
+            if (provider === 'Stripe') {
+                stripeBtn.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center gap-1.5';
+                paypalBtn.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-emerald-900 flex items-center justify-center gap-1.5';
+                stripeFields.classList.remove('hidden');
+                paypalFields.classList.add('hidden');
+            } else {
+                paypalBtn.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center gap-1.5';
+                stripeBtn.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-emerald-900 flex items-center justify-center gap-1.5';
+                stripeFields.classList.add('hidden');
+                paypalFields.classList.remove('hidden');
+            }
+        }
+
+        function confirmGatewayPayment() {
+            const plan = state.pendingCheckoutPlan;
+            let amount = 0;
+            if (plan === 'monthly') amount = 19.00;
+            if (plan === 'yearly') amount = 149.00;
+            if (plan === 'single') amount = 7.99;
+
+            activateSubscriptionPlan(plan, amount, state.selectedGateway);
+            closeCheckoutModal();
+        }
+
+        function activateSubscriptionPlan(plan, amount, gateway) {
+            const u = state.currentUser;
+            if (!u) {
+                showToast('Please log in first to activate a subscription.', 'error');
+                switchTab('auth');
+                return;
+            }
+
+            let itemDescription = 'Normal (Free Tier)';
+            if (plan === 'free') {
+                u.role = 'normal';
+                u.plan = 'free';
+                u.quotaRemaining = 0;
+                u.quotaMax = 0;
+                u.renewalDate = 'N/A (Free)';
+            } else if (plan === 'monthly') {
+                u.role = 'premium';
+                u.plan = 'monthly';
+                u.quotaRemaining = 15;
+                u.quotaMax = 15;
+                u.renewalDate = 'Nov 17, 2026';
+                itemDescription = 'Premium Monthly Plan';
+            } else if (plan === 'yearly') {
+                u.role = 'premium';
+                u.plan = 'yearly';
+                u.quotaRemaining = 999;
+                u.quotaMax = 999;
+                u.renewalDate = 'Oct 17, 2027';
+                itemDescription = 'Premium Yearly Plan';
+            } else if (plan === 'single') {
+                const targetId = Number(state.pendingSinglePdfId);
+                const res = state.resources.find(r => r.id === targetId);
+                if (!u.singlePdfUnlockedIds.includes(targetId)) {
+                    u.singlePdfUnlockedIds.push(targetId);
+                }
+                u.plan = 'single';
+                u.quotaRemaining += 1;
+                u.quotaMax = Math.max(u.quotaMax, u.quotaRemaining);
+                u.renewalDate = 'One-Time Credit';
+                itemDescription = `Single PDF (#${targetId} ${res ? res.title.slice(0, 24) + '...' : ''})`;
+            }
+
+            if (amount > 0) {
+                const txnId = 'TXN-' + Math.floor(10000 + Math.random() * 90000);
+                state.payments.unshift({
+                    id: txnId,
+                    date: 'Oct 17, 2026',
+                    user: u.name,
+                    item: itemDescription,
+                    gateway: gateway,
+                    amount: amount,
+                    status: 'Succeeded'
+                });
+
+                // Dispatch simulated receipt email
+                state.emails.unshift({
+                    id: Date.now(),
+                    to: u.email,
+                    subject: `[${gateway} Receipt] ${itemDescription} Activated (${txnId})`,
+                    timestamp: 'Just now',
+                    body: `Thank you ${u.name}! Your payment of $${amount.toFixed(2)} via ${gateway} was confirmed. Your download quota has been updated immediately.`,
+                    actionType: null
+                });
+            }
+
+            // Sync back to users list
+            const existing = state.users.find(item => item.id === u.id);
+            if (existing) {
+                Object.assign(existing, u);
+            }
+
+            syncHeaderAndBanner();
+            renderResources();
+            renderPaymentHistory();
+            renderSimulatedInbox();
+            highlightWorkflowBranches();
+            updateTableCounts();
+            renderCurrentDbTable();
+
+            showToast(`${itemDescription} activated! Quota updated.`, 'success');
+
+            syncMutationToGoogleSheet('updateUser', { user: u });
+            if (amount > 0) {
+                syncMutationToGoogleSheet('addPayment', { payment: state.payments[0] });
+                syncMutationToGoogleSheet('logEmail', { email: state.emails[0] });
+            }
+        }
+
+        function renderPaymentHistory() {
+            const tbody = document.getElementById('user-payments-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = state.payments.map(p => `
+                <tr class="hover:bg-emerald-50/40 transition">
+                    <td class="py-3 px-4 font-mono text-xs font-semibold text-emerald-700">${p.id}</td>
+                    <td class="py-3 px-4 text-slate-600">${p.date}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${p.item} <span class="text-xs font-normal text-slate-400">(${p.user})</span></td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ${p.gateway}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-bold text-slate-900">$${p.amount.toFixed(2)}</td>
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center text-xs font-bold text-emerald-600">
+                            <i class="fa-solid fa-circle-check mr-1"></i>${p.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 9. AUTHENTICATION, DOUBLE OPT-IN EMAIL VERIFICATION & PASSWORD RESET
+        function switchAuthSubView(mode) {
+            ['login', 'register', 'reset'].forEach(m => {
+                document.getElementById(`form-${m}`).classList.toggle('hidden', m !== mode);
+                const tab = document.getElementById(`auth-tab-${m}`);
+                if (m === mode) {
+                    tab.className = 'py-3.5 text-emerald-700 border-b-2 border-emerald-600 bg-white';
+                } else {
+                    tab.className = 'py-3.5 text-slate-500 hover:text-emerald-800';
+                }
+            });
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            const found = state.users.find(u => u.email.toLowerCase() === email);
+
+            if (found) {
+                state.currentUser = { ...found };
+                showToast(`Signed in as ${found.name}`, 'success');
+            } else {
+                state.currentUser = {
+                    id: Date.now(),
+                    name: email.split('@')[0],
+                    email: email,
+                    role: 'normal',
+                    plan: 'free',
+                    emailVerified: true,
+                    quotaRemaining: 0,
+                    quotaMax: 0,
+                    renewalDate: 'N/A (Free)',
+                    singlePdfUnlockedIds: []
+                };
+                state.users.push({ ...state.currentUser });
+                showToast(`Signed in as ${state.currentUser.name}`, 'success');
+            }
+
+            syncHeaderAndBanner();
+            renderResources();
+            switchTab('library');
+        }
+
+        function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const plan = document.getElementById('reg-plan').value;
+
+            const newUser = {
+                id: Date.now(),
+                name,
+                email,
+                role: plan === 'free' ? 'normal' : 'premium',
+                plan: plan,
+                emailVerified: false, // Requires Double Opt-In verification!
+                quotaRemaining: plan === 'monthly' ? 15 : (plan === 'yearly' ? 999 : 0),
+                quotaMax: plan === 'monthly' ? 15 : (plan === 'yearly' ? 999 : 0),
+                renewalDate: plan === 'free' ? 'N/A' : 'Nov 17, 2026',
+                singlePdfUnlockedIds: []
+            };
+
+            state.users.unshift(newUser);
+            state.currentUser = { ...newUser };
+
+            // Add Double Opt-In Verification Email to Simulated Inbox
+            state.emails.unshift({
+                id: Date.now(),
+                to: email,
+                subject: '[Action Required] Confirm your EduVault Email (Double Opt-In)',
+                timestamp: 'Just now',
+                body: `Welcome ${name}! Please click the verification button below to complete your Double Opt-In verification and unlock your ${plan.toUpperCase()} account capabilities.`,
+                actionType: 'verify_email'
+            });
+
+            syncHeaderAndBanner();
+            renderResources();
+            renderSimulatedInbox();
+            updateTableCounts();
+            renderCurrentDbTable();
+            showToast('Account created! Check Simulated Inbox to complete Double Opt-In verification.', 'warning');
+            openEmailClientModal();
+            syncMutationToGoogleSheet('addUser', { user: newUser });
+            syncMutationToGoogleSheet('logEmail', { email: state.emails[0] });
+        }
+
+        function handlePasswordResetSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value.trim();
+            state.emails.unshift({
+                id: Date.now(),
+                to: email,
+                subject: '[SendGrid Security] Password Reset Link for EduVault',
+                timestamp: 'Just now',
+                body: `We received a request to reset the password for ${email}. Click below to simulate setting a new secure password.`,
+                actionType: 'reset_password'
+            });
+            renderSimulatedInbox();
+            showToast(`Password reset email sent to ${email}! Opening Simulated Inbox...`, 'info');
+            openEmailClientModal();
+        }
+
+        function resendVerificationEmail() {
+            if (!state.currentUser) return;
+            state.emails.unshift({
+                id: Date.now(),
+                to: state.currentUser.email,
+                subject: '[Resent] Confirm your EduVault Email (Double Opt-In)',
+                timestamp: 'Just now',
+                body: `Hi ${state.currentUser.name}, click below to verify your email address and activate full library privileges.`,
+                actionType: 'verify_email'
+            });
+            renderSimulatedInbox();
+            openEmailClientModal();
+        }
+
+        function verifyCurrentUserEmail() {
+            if (!state.currentUser) return;
+            state.currentUser.emailVerified = true;
+            const dbUser = state.users.find(u => u.id === state.currentUser.id);
+            if (dbUser) dbUser.emailVerified = true;
+
+            syncHeaderAndBanner();
+            renderResources();
+            renderAdminDashboard();
+            updateTableCounts();
+            renderCurrentDbTable();
+            closeEmailClientModal();
+            showToast('Email verified via Double Opt-In! Downloads and upgrades unlocked.', 'success');
+            syncMutationToGoogleSheet('verifyEmail', { email: state.currentUser.email });
+        }
+
+        function handleLogout() {
+            state.currentUser = null;
+            syncHeaderAndBanner();
+            renderResources();
+            showToast('You have been logged out.', 'info');
+            switchTab('auth');
+        }
+
+        // 10. SIMULATED INBOX MODAL
+        function renderSimulatedInbox() {
+            const badge = document.getElementById('inbox-badge');
+            if (badge) badge.textContent = state.emails.length;
+
+            const container = document.getElementById('email-inbox-list');
+            if (!container) return;
+
+            container.innerHTML = state.emails.map(mail => `
+                <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-2">
+                    <div class="flex items-center justify-between text-[11px] text-slate-500">
+                        <span class="font-semibold text-emerald-700">To: ${mail.to}</span>
+                        <span>${mail.timestamp}</span>
+                    </div>
+                    <h4 class="font-bold text-sm text-slate-900">${mail.subject}</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">${mail.body}</p>
+                    ${mail.actionType === 'verify_email' ? `
+                        <button onclick="verifyCurrentUserEmail()" class="mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition">
+                            <i class="fa-solid fa-check-double mr-1.5"></i>Confirm Double Opt-In Email Now
+                        </button>
+                    ` : ''}
+                    ${mail.actionType === 'reset_password' ? `
+                        <button onclick="completeSimulatedPasswordReset()" class="mt-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition">
+                            <i class="fa-solid fa-key mr-1.5"></i>Simulate New Password Saved
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function completeSimulatedPasswordReset() {
+            closeEmailClientModal();
+            showToast('Password updated! You can now log in with your new credentials.', 'success');
+            switchTab('auth');
+            switchAuthSubView('login');
+        }
+
+        function openEmailClientModal() {
+            renderSimulatedInbox();
+            document.getElementById('email-modal').classList.remove('hidden');
+        }
+
+        function closeEmailClientModal() {
+            document.getElementById('email-modal').classList.add('hidden');
+        }
+
+        // 11. PREVIEW MODAL
+        function openPreviewModal(resourceId) {
+            const r = state.resources.find(item => item.id === resourceId);
+            if (!r) return;
+
+            document.getElementById('preview-modal-title').textContent = r.title;
+            document.getElementById('preview-modal-cat').textContent = r.category;
+            document.getElementById('preview-modal-pages').textContent = `${r.pages} Pages`;
+            document.getElementById('preview-modal-author').textContent = `By ${r.author}`;
+            document.getElementById('preview-modal-abstract').textContent = r.abstract;
+
+            const dlBtn = document.getElementById('preview-modal-download-btn');
+            const access = canUserDownloadResource(r.id);
+            if (access.allowed) {
+                dlBtn.textContent = `Download Full PDF (${access.reason})`;
+                dlBtn.className = 'w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition';
+                dlBtn.onclick = () => triggerPdfDownload(r.id);
+            } else {
+                dlBtn.textContent = `Locked — Buy Single PDF ($${r.price}) or Upgrade`;
+                dlBtn.className = 'w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-100 hover:bg-emerald-600 text-emerald-900 hover:text-white border border-emerald-300 text-xs font-bold transition';
+                dlBtn.onclick = () => {
+                    closePreviewModal();
+                    promptSingleOrUpgrade(r.id);
+                };
+            }
+
+            document.getElementById('preview-modal').classList.remove('hidden');
+        }
+
+        function closePreviewModal() {
+            document.getElementById('preview-modal').classList.add('hidden');
+        }
+
+        // 12. ADMIN DASHBOARD LOGIC
+        function renderAdminDashboard() {
+            const totalRevenue = state.payments.reduce((acc, p) => acc + p.amount, 1252.98);
+            const totalDownloads = state.resources.reduce((acc, r) => acc + r.downloads, 0);
+
+            document.getElementById('admin-stat-revenue').textContent = `$${totalRevenue.toFixed(2)}`;
+            document.getElementById('admin-stat-users').textContent = String(state.users.length);
+            document.getElementById('admin-stat-downloads').textContent = String(totalDownloads);
+            document.getElementById('admin-stat-resources').textContent = `${state.resources.length} PDFs`;
+
+            const usersTbody = document.getElementById('admin-users-tbody');
+            usersTbody.innerHTML = state.users.map(u => `
+                <tr class="hover:bg-emerald-50/40">
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900">${u.name}</div>
+                        <div class="text-[11px] text-slate-400">${u.email}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        ${u.emailVerified
+                            ? '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-check mr-1"></i>Yes</span>'
+                            : `<button onclick="adminVerifyUser(${u.id})" class="text-emerald-700 underline font-semibold">Verify Now</button>`
+                        }
+                    </td>
+                    <td class="py-3 px-4 uppercase font-bold text-[11px] text-emerald-700">${u.plan}</td>
+                    <td class="py-3 px-4 font-semibold">${u.plan === 'yearly' ? 'Unlimited' : u.quotaRemaining}</td>
+                    <td class="py-3 px-4 text-right space-x-1">
+                        <button onclick="adminGrantQuota(${u.id})" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-[11px]">
+                            +5 Quota
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const miniList = document.getElementById('admin-resource-mini-list');
+            miniList.innerHTML = state.resources.map(r => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/40 border border-emerald-200 text-xs">
+                    <div class="truncate pr-2">
+                        <span class="font-bold text-slate-800">${r.title}</span>
+                        <span class="block text-[10px] text-slate-500">${r.category} • ${r.downloads} downloads</span>
+                    </div>
+                    <button onclick="adminDeleteResource(${r.id})" class="text-slate-400 hover:text-emerald-700 px-2">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function adminVerifyUser(userId) {
+            const u = state.users.find(item => item.id === userId);
+            if (u) {
+                u.emailVerified = true;
+                if (state.currentUser && state.currentUser.id === userId) {
+                    state.currentUser.emailVerified = true;
+                }
+                syncHeaderAndBanner();
+                renderAdminDashboard();
+                updateTableCounts();
+                renderCurrentDbTable();
+                showToast(`Verified email for ${u.name}`, 'success');
+                syncMutationToGoogleSheet('verifyEmail', { email: u.email });
+            }
+        }
+
+        function adminGrantQuota(userId) {
+            const u = state.users.find(item => item.id === userId);
+            if (u) {
+                u.quotaRemaining += 5;
+                u.quotaMax = Math.max(u.quotaMax, u.quotaRemaining);
+                if (state.currentUser && state.currentUser.id === userId) {
+                    state.currentUser.quotaRemaining = u.quotaRemaining;
+                    state.currentUser.quotaMax = u.quotaMax;
+                }
+                syncHeaderAndBanner();
+                renderAdminDashboard();
+                renderResources();
+                updateTableCounts();
+                renderCurrentDbTable();
+                showToast(`Added +5 download quota to ${u.name}`, 'success');
+                syncMutationToGoogleSheet('updateUser', { user: u });
+            }
+        }
+
+        function adminDeleteResource(resourceId) {
+            state.resources = state.resources.filter(r => r.id !== resourceId);
+            populateSinglePdfDropdown();
+            renderResources();
+            renderAdminDashboard();
+            updateTableCounts();
+            renderCurrentDbTable();
+            showToast('Resource removed from library.', 'info');
+            syncMutationToGoogleSheet('deleteResource', { resourceId });
+        }
+
+        function openUploadResourceModal() {
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
+
+        function closeUploadResourceModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+
+        function handleAdminResourceUpload(e) {
+            e.preventDefault();
+            const title = document.getElementById('up-title').value.trim();
+            const category = document.getElementById('up-category').value;
+            const pages = Number(document.getElementById('up-pages').value);
+            const author = document.getElementById('up-author').value.trim();
+            const abstract = document.getElementById('up-desc').value.trim();
+
+            const newRes = {
+                id: 100 + state.resources.length + 1,
+                title,
+                category,
+                author,
+                pages,
+                price: 7.99,
+                downloads: 0,
+                abstract
+            };
+
+            state.resources.unshift(newRes);
+            populateSinglePdfDropdown();
+            renderResources();
+            renderAdminDashboard();
+            updateTableCounts();
+            renderCurrentDbTable();
+            closeUploadResourceModal();
+            e.target.reset();
+            showToast(`Published "${title}" to the E-Learning Catalog!`, 'success');
+            syncMutationToGoogleSheet('addResource', { resource: newRes });
+        }
+
+        // 13. INTERACTIVE WORKFLOW DIAGRAM INSPECTOR
+        function highlightWorkflowBranches() {
+            const plan = state.currentUser?.plan || 'free';
+            const bFree = document.getElementById('branch-free');
+            const bPrem = document.getElementById('branch-premium');
+            const bSing = document.getElementById('branch-single');
+
+            [bFree, bPrem, bSing].forEach(el => el && el.classList.remove('active-node'));
+            if (plan === 'free' && bFree) bFree.classList.add('active-node');
+            if ((plan === 'monthly' || plan === 'yearly') && bPrem) bPrem.classList.add('active-node');
+            if (plan === 'single' && bSing) bSing.classList.add('active-node');
+        }
+
+        function inspectWorkflowNode(nodeKey) {
+            const details = {
+                signup: {
+                    title: 'Step 1: User Registration & JWT Authentication',
+                    desc: 'Validates email/password payload, hashes credentials with bcrypt (cost 12), and creates a pending user record in PostgreSQL.',
+                    code: 'POST /api/v1/auth/register -> 201 Created'
+                },
+                verify: {
+                    title: 'Step 2: Double Opt-In Email Verification (SendGrid)',
+                    desc: 'Generates a signed 24-hour verification token sent via SendGrid. Blocks PDF downloads until email_verified = true.',
+                    code: 'GET /api/v1/auth/verify?token=eyJ... -> 200 OK'
+                },
+                select_sub: {
+                    title: 'Step 3: Tiered Subscription & Pricing Selector',
+                    desc: 'Allows choosing Normal (Free), Premium Monthly ($19), Premium Yearly ($149), or Single PDF ($7.99) with dynamic quota mapping.',
+                    code: 'GET /api/v1/plans -> [free, monthly, yearly, single]'
+                },
+                gateway: {
+                    title: 'Step 4: Stripe & PayPal Payment Webhook Handler',
+                    desc: 'Processes checkout session completion, records transaction in payments ledger, and triggers immediate subscription activation.',
+                    code: 'POST /api/v1/webhooks/stripe (invoice.payment_succeeded)'
+                },
+                library: {
+                    title: 'Step 5: Role-Based Library Access Engine',
+                    desc: 'Normal users receive preview metadata; Premium & Single-PDF buyers receive authorized download capabilities.',
+                    code: 'GET /api/v1/resources (RBAC Middleware)'
+                },
+                download: {
+                    title: 'Step 6: Atomic Quota Decrement & Signed PDF Stream',
+                    desc: 'Verifies remaining quota > 0, decrements user quota inside a DB transaction, and returns a signed CloudFront/S3 PDF stream.',
+                    code: 'POST /api/v1/resources/:id/download'
+                },
+                admin_login: {
+                    title: 'Admin Flow: Role Guard & Elevated Session',
+                    desc: 'Verifies JWT claim role === "admin" before exposing user management, upload pipelines, or revenue telemetry.',
+                    code: 'requireRole("admin") Middleware'
+                },
+                admin_users: {
+                    title: 'Admin Flow: User & Quota Governance',
+                    desc: 'Enables admins to manually verify accounts, adjust subscription tiers, or grant bonus PDF download quotas.',
+                    code: 'PATCH /api/v1/admin/users/:id/quota'
+                },
+                admin_upload: {
+                    title: 'Admin Flow: Categorized Resource Ingestion',
+                    desc: 'Uploads PDF binaries to object storage and indexes title, author, page count, and category in PostgreSQL.',
+                    code: 'POST /api/v1/admin/resources'
+                },
+                admin_payments: {
+                    title: 'Admin Flow: Real-Time Revenue & Conversion Analytics',
+                    desc: 'Aggregates Stripe & PayPal ledger entries by tier (Monthly, Yearly, Single PDF) and tracks resource download velocity.',
+                    code: 'GET /api/v1/admin/analytics/revenue'
+                }
+            };
+
+            const info = details[nodeKey];
+            if (!info) return;
+
+            document.getElementById('inspector-title').textContent = info.title;
+            document.getElementById('inspector-desc').textContent = info.desc;
+            document.getElementById('inspector-code').textContent = info.code;
+        }
+
+        // 14. NON-BLOCKING TOAST NOTIFICATION HELPER
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-white border-emerald-600 text-slate-900',
+                warning: 'bg-white border-emerald-500 text-slate-900',
+                error: 'bg-white border-emerald-700 text-slate-900',
+                info: 'bg-white border-emerald-500 text-slate-900'
+            };
+            const icons = {
+                success: 'fa-circle-check text-emerald-600',
+                warning: 'fa-circle-exclamation text-emerald-600',
+                error: 'fa-circle-xmark text-emerald-700',
+                info: 'fa-circle-info text-emerald-600'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-xl border-2 border-l-8 shadow-xl text-xs font-semibold transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} text-base shrink-0"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3800);
+        }
+
+        // 15. GOOGLE SHEET BACKEND HUB & TWO-WAY SYNCHRONIZATION
+        function initGoogleSheetFrontend() {
+            const urlInput = document.getElementById('webapp-url-input');
+            if (urlInput && state.webAppUrl) {
+                urlInput.value = state.webAppUrl;
+                triggerManualSync(true);
+            }
+            updateTableCounts();
+            renderCurrentDbTable();
+        }
+
+        function updateTableCounts() {
+            const cUsers = document.getElementById('badge-count-users');
+            const cRes = document.getElementById('badge-count-resources');
+            const cPay = document.getElementById('badge-count-payments');
+            const cMail = document.getElementById('badge-count-emails');
+            const cSub = document.getElementById('badge-count-subscriptions');
+
+            if (cUsers) cUsers.textContent = state.users.length;
+            if (cRes) cRes.textContent = state.resources.length;
+            if (cPay) cPay.textContent = state.payments.length;
+            if (cMail) cMail.textContent = state.emails.length;
+            if (cSub) cSub.textContent = state.subscriptions.length;
+        }
+
+        function switchDbTableTab(tab) {
+            state.activeDbTab = tab;
+            ['users', 'resources', 'payments', 'emails', 'subscriptions'].forEach(t => {
+                const btn = document.getElementById(`dbtab-${t}`);
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-emerald-600 text-white shadow-sm';
+                    } else {
+                        btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 bg-white text-slate-700 border border-emerald-200';
+                    }
+                }
+            });
+            renderCurrentDbTable();
+        }
+
+        function renderCurrentDbTable() {
+            const container = document.getElementById('db-table-content');
+            if (!container) return;
+            const search = (document.getElementById('db-table-search')?.value || '').toLowerCase();
+            const tab = state.activeDbTab;
+
+            if (tab === 'users') {
+                const rows = state.users.filter(u => !search || JSON.stringify(u).toLowerCase().includes(search));
+                container.innerHTML = `
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                            <tr>
+                                <th class="py-3 px-4">ID</th><th class="py-3 px-4">Name</th><th class="py-3 px-4">Email</th>
+                                <th class="py-3 px-4">Role</th><th class="py-3 px-4">Plan</th><th class="py-3 px-4">Verified</th>
+                                <th class="py-3 px-4">Quota Left</th><th class="py-3 px-4">Renewal Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-emerald-100 bg-white">
+                            ${rows.map(u => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="py-3 px-4 font-mono font-bold text-emerald-700">${u.id}</td>
+                                    <td class="py-3 px-4 font-semibold text-slate-900">${u.name}</td>
+                                    <td class="py-3 px-4 text-slate-600">${u.email}</td>
+                                    <td class="py-3 px-4 uppercase font-bold text-[10px] text-emerald-800">${u.role}</td>
+                                    <td class="py-3 px-4 uppercase font-semibold text-slate-700">${u.plan}</td>
+                                    <td class="py-3 px-4">${u.emailVerified ? '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-check mr-1"></i>Yes</span>' : '<span class="text-amber-600 font-semibold">Pending</span>'}</td>
+                                    <td class="py-3 px-4 font-mono">${u.plan === 'yearly' || u.role === 'admin' ? 'Unlimited' : `${u.quotaRemaining} / ${u.quotaMax}`}</td>
+                                    <td class="py-3 px-4 text-slate-500">${u.renewalDate}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (tab === 'resources') {
+                const rows = state.resources.filter(r => !search || JSON.stringify(r).toLowerCase().includes(search));
+                container.innerHTML = `
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                            <tr>
+                                <th class="py-3 px-4">ID</th><th class="py-3 px-4">Title</th><th class="py-3 px-4">Category</th>
+                                <th class="py-3 px-4">Author</th><th class="py-3 px-4">Pages</th><th class="py-3 px-4">Price</th><th class="py-3 px-4">Downloads</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-emerald-100 bg-white">
+                            ${rows.map(r => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="py-3 px-4 font-mono font-bold text-emerald-700">#${r.id}</td>
+                                    <td class="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">${r.title}</td>
+                                    <td class="py-3 px-4"><span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-semibold text-[10px]">${r.category}</span></td>
+                                    <td class="py-3 px-4 text-slate-600">${r.author}</td>
+                                    <td class="py-3 px-4 font-mono">${r.pages}p</td>
+                                    <td class="py-3 px-4 font-bold text-slate-900">$${Number(r.price).toFixed(2)}</td>
+                                    <td class="py-3 px-4 font-semibold text-emerald-700">${r.downloads}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (tab === 'payments') {
+                const rows = state.payments.filter(p => !search || JSON.stringify(p).toLowerCase().includes(search));
+                container.innerHTML = `
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                            <tr>
+                                <th class="py-3 px-4">Transaction ID</th><th class="py-3 px-4">Date</th><th class="py-3 px-4">User</th>
+                                <th class="py-3 px-4">Item</th><th class="py-3 px-4">Gateway</th><th class="py-3 px-4">Amount</th><th class="py-3 px-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-emerald-100 bg-white">
+                            ${rows.map(p => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="py-3 px-4 font-mono font-bold text-emerald-700">${p.id}</td>
+                                    <td class="py-3 px-4 text-slate-600">${p.date}</td>
+                                    <td class="py-3 px-4 font-semibold text-slate-900">${p.user}</td>
+                                    <td class="py-3 px-4 text-slate-700">${p.item}</td>
+                                    <td class="py-3 px-4"><span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">${p.gateway}</span></td>
+                                    <td class="py-3 px-4 font-extrabold text-slate-900">$${Number(p.amount).toFixed(2)}</td>
+                                    <td class="py-3 px-4 text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-1"></i>${p.status}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (tab === 'emails') {
+                const rows = state.emails.filter(e => !search || JSON.stringify(e).toLowerCase().includes(search));
+                container.innerHTML = `
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                            <tr>
+                                <th class="py-3 px-4">ID</th><th class="py-3 px-4">Recipient</th><th class="py-3 px-4">Subject</th>
+                                <th class="py-3 px-4">Timestamp</th><th class="py-3 px-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-emerald-100 bg-white">
+                            ${rows.map(e => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="py-3 px-4 font-mono font-bold text-emerald-700">#${e.id}</td>
+                                    <td class="py-3 px-4 font-semibold text-slate-900">${e.to}</td>
+                                    <td class="py-3 px-4 text-slate-800 font-medium">${e.subject}</td>
+                                    <td class="py-3 px-4 text-slate-500">${e.timestamp}</td>
+                                    <td class="py-3 px-4"><span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">${e.actionType || 'info'}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (tab === 'subscriptions') {
+                const rows = state.subscriptions.filter(s => !search || JSON.stringify(s).toLowerCase().includes(search));
+                container.innerHTML = `
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-emerald-50/70 text-[11px] font-bold uppercase tracking-wider text-emerald-900 border-b border-emerald-200">
+                            <tr>
+                                <th class="py-3 px-4">Sub ID</th><th class="py-3 px-4">User Email</th><th class="py-3 px-4">Plan</th>
+                                <th class="py-3 px-4">Billing Cycle</th><th class="py-3 px-4">Price</th><th class="py-3 px-4">Status</th><th class="py-3 px-4">Next Billing</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-emerald-100 bg-white">
+                            ${rows.map(s => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="py-3 px-4 font-mono font-bold text-emerald-700">${s.id}</td>
+                                    <td class="py-3 px-4 text-slate-700">${s.userEmail}</td>
+                                    <td class="py-3 px-4 font-bold uppercase text-slate-800">${s.planName}</td>
+                                    <td class="py-3 px-4">${s.billingCycle}</td>
+                                    <td class="py-3 px-4 font-bold text-slate-900">$${Number(s.price).toFixed(2)}</td>
+                                    <td class="py-3 px-4 text-emerald-600 font-bold">${s.status}</td>
+                                    <td class="py-3 px-4 text-slate-500">${s.nextBillingDate}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+
+        function handleSaveWebAppEndpoint(e) {
+            e.preventDefault();
+            const val = document.getElementById('webapp-url-input').value.trim();
+            state.webAppUrl = val;
+            localStorage.setItem('eduvault_webapp_url', val);
+            showToast('Saved Google Apps Script Web App Endpoint!', 'success');
+            triggerManualSync();
+        }
+
+        async function triggerManualSync(silent = false) {
+            if (!state.webAppUrl) {
+                if (!silent) showToast('Please enter your Google Apps Script Web App URL first.', 'warning');
+                return;
+            }
+
+            const pill = document.getElementById('gsheet-status-pill');
+            const topBadge = document.getElementById('top-sheet-badge');
+            if (pill) pill.innerHTML = '<span class="w-2 h-2 rounded-full mr-1.5 bg-amber-400 animate-pulse"></span><span>Syncing...</span>';
+            if (topBadge) topBadge.textContent = 'Syncing...';
+
+            logAuditMessage(`Syncing from Google Sheet: ${state.webAppUrl.slice(0, 32)}...`, 'info');
+
+            try {
+                const res = await fetch(`${state.webAppUrl}?action=getData&_t=${Date.now()}`);
+                const json = await res.json();
+
+                if (json.status === 'success' && json.data) {
+                    if (Array.isArray(json.data.users) && json.data.users.length > 0) state.users = json.data.users;
+                    if (Array.isArray(json.data.resources) && json.data.resources.length > 0) state.resources = json.data.resources;
+                    if (Array.isArray(json.data.payments) && json.data.payments.length > 0) state.payments = json.data.payments;
+                    if (Array.isArray(json.data.emails) && json.data.emails.length > 0) state.emails = json.data.emails;
+                    if (Array.isArray(json.data.subscriptions) && json.data.subscriptions.length > 0) state.subscriptions = json.data.subscriptions;
+
+                    state.sheetStatus = 'online';
+                    if (pill) pill.innerHTML = '<span class="w-2 h-2 rounded-full mr-1.5 bg-emerald-400 animate-pulse"></span><span>Connected to Google Sheet</span>';
+                    if (topBadge) topBadge.textContent = 'Sheet Connected';
+
+                    logAuditMessage('Successfully synced all 5 tables from Google Sheet', 'success');
+                    if (!silent) showToast('Synced with Google Sheet backend database!', 'success');
+
+                    populateSinglePdfDropdown();
+                    renderResources();
+                    renderPaymentHistory();
+                    renderAdminDashboard();
+                    renderSimulatedInbox();
+                    updateTableCounts();
+                    renderCurrentDbTable();
+                } else {
+                    throw new Error(json.message || 'Malformed Google Sheet response');
+                }
+            } catch (err) {
+                state.sheetStatus = 'offline';
+                if (pill) pill.innerHTML = '<span class="w-2 h-2 rounded-full mr-1.5 bg-slate-300"></span><span>Local Resilient Mode</span>';
+                if (topBadge) topBadge.textContent = 'Local DB Mode';
+                logAuditMessage(`Sync failed: ${err.message}. Retaining local state.`, 'error');
+            }
+        }
+
+        async function triggerRemoteInitDatabase() {
+            if (!state.webAppUrl) {
+                showToast('Please enter your Google Apps Script Web App URL first.', 'warning');
+                return;
+            }
+            logAuditMessage('Calling "initializeDatabase" on Google Sheet...', 'info');
+            try {
+                await fetch(state.webAppUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'initializeDatabase' })
+                });
+                showToast('Google Sheet tables initialized with headers & initial records!', 'success');
+                triggerManualSync();
+            } catch (err) {
+                showToast(`Init request failed: ${err.message}`, 'error');
+            }
+        }
+
+        function toggleSetupGuideModal() {
+            const banner = document.getElementById('gsheet-setup-banner');
+            if (banner) banner.classList.toggle('hidden');
+        }
+
+        function copyAppsScriptCodeToClipboard() {
+            fetch('google_sheet_backend_code.js')
+                .then(r => r.text())
+                .then(txt => {
+                    navigator.clipboard.writeText(txt);
+                    showToast('Google Apps Script code copied to clipboard!', 'success');
+                })
+                .catch(() => {
+                    showToast('Please open google_sheet_backend_code.js in this directory.', 'info');
+                });
+        }
+
+        function logAuditMessage(text, type = 'info') {
+            const container = document.getElementById('audit-log-container');
+            if (!container) return;
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-rose-400' : (type === 'success' ? 'text-emerald-400' : 'text-slate-300');
+            const row = document.createElement('div');
+            row.className = 'flex items-start gap-2';
+            row.innerHTML = `<span class="text-slate-500 shrink-0">[${time}]</span><span class="${color}">${text}</span>`;
+            container.insertBefore(row, container.firstChild);
+        }
+
+        async function syncMutationToGoogleSheet(action, payload = {}) {
+            logAuditMessage(`Dispatched action: "${action}"`, 'info');
+            if (!state.webAppUrl) return;
+            try {
+                await fetch(state.webAppUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...payload })
+                });
+                logAuditMessage(`Action "${action}" saved to Google Sheet`, 'success');
+            } catch (err) {
+                logAuditMessage(`Action "${action}" remote error: ${err.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
